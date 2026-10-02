@@ -39,7 +39,8 @@ export async function searchTranscript(
   { maxBytes = 32 * 1024 * 1024, deadline = Infinity } = {},
 ) {
   const actual = await realpath(entry.file);
-  const rel = relative(entry.root, actual);
+  const root = await realpath(entry.root);
+  const rel = relative(root, actual);
   if (!rel || rel.startsWith("..") || isAbsolute(rel))
     throw new Error("Transcript is outside its source folder");
   const handle = await open(actual, "r");

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
+import { mkdtemp, writeFile, rm, mkdir, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { searchTranscript } from "../server/library/search.mjs";
@@ -91,5 +91,34 @@ test("library full text is opt-in and invalidates matches when transcripts chang
     (await library.query({ search: "zebra", fullText: true, refresh: true }))
       .total,
     0,
+  );
+});
+
+test("transcript search resolves a source folder junction before checking scope", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "ocelin-search-alias-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const source = join(root, "source");
+  const alias = join(root, "alias");
+  await mkdir(source);
+  await symlink(
+    source,
+    alias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  await writeFile(
+    join(source, "session.jsonl"),
+    JSON.stringify({
+      type: "assistant",
+      message: { content: "found through alias" },
+    }),
+  );
+  assert.equal(
+    (
+      await searchTranscript(
+        { root: alias, file: join(alias, "session.jsonl") },
+        ["found"],
+      )
+    ).matched,
+    true,
   );
 });
