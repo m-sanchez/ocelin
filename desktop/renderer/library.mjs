@@ -1,5 +1,6 @@
 import { providerIcon } from "./icons.mjs";
 import { memory } from "./session-model.mjs";
+import { sessionIdentityText } from "../../ui/shared/session-identity.mjs";
 
 const $ = (id) => document.getElementById(id);
 const fileSize = (bytes) =>
@@ -98,12 +99,13 @@ async function peek(session) {
     `${value.cwd || "No saved workspace"}${value.workspaceExists ? "" : " · folder unavailable"}`,
   );
   panel.replaceChildren(heading, title, project);
+  panel.append(element("p", "muted", sessionIdentityText(value)));
   if (value.profiles?.length)
     panel.append(
       element(
         "p",
         "muted",
-        `Source profile: ${value.profiles.map((p) => p.label).join(" · ")}. Original account not verified.`,
+        `Source profile: ${value.profiles.map((p) => p.label).join(" · ")}`,
       ),
     );
   if (value.previewWarning)
@@ -132,6 +134,24 @@ async function peek(session) {
         ),
       );
   }
+  if (value.diagnostics?.findings.length) {
+    panel.append(element("h3", "eyebrow", "Worth checking"));
+    for (const finding of value.diagnostics.findings.slice(-5))
+      panel.append(
+        element(
+          "p",
+          "peek-tool",
+          `Turn ${finding.turn + 1}: ${finding.message}`,
+        ),
+      );
+    panel.append(
+      element(
+        "p",
+        "muted",
+        "Heuristics from recent transcript history; session status is unchanged.",
+      ),
+    );
+  }
   panel.append(
     element(
       "p",
@@ -139,14 +159,24 @@ async function peek(session) {
       `${new Date(value.lastTs).toLocaleString()} · ${fileSize(value.bytes)} transcript${value.model ? ` · ${value.model}` : ""}`,
     ),
   );
-  panel.append(
-    button(
-      `${value.provider === "claude" && value.nativeArchived ? "Restore and open" : "Open"} in ${value.provider === "codex" ? "Codex" : "Claude"}`,
-      () => api("session-open", { key: value.key }),
-      "primary",
-    ),
-  );
+  if (value.readOnlySource)
+    panel.append(
+      element(
+        "p",
+        "muted",
+        "Read-only source. Continue this conversation on its original host.",
+      ),
+    );
+  else
+    panel.append(
+      button(
+        `${value.provider === "claude" && value.nativeArchived ? "Restore and open" : "Open"} in ${value.provider === "codex" ? "Codex" : "Claude"}`,
+        () => api("session-open", { key: value.key }),
+        "primary",
+      ),
+    );
 }
+export { peek as previewSession };
 export async function showLibrary(next) {
   view = next;
   closePreview();
@@ -158,7 +188,7 @@ export async function showLibrary(next) {
   if (view === "now") refreshNow();
   else await query();
 }
-async function query(offset = 0) {
+async function query(offset = 0, continueSearch = false) {
   const serial = ++sequence;
   $("library-more").disabled = true;
   $("library-status").textContent = "Loading your session library…";
@@ -168,6 +198,8 @@ async function query(offset = 0) {
     provider: $("library-provider").value,
     olderDays: Number($("library-age").value),
     missingWorkspace: $("library-missing").checked,
+    fullText: $("library-fulltext").checked,
+    continueSearch,
     offset,
   });
   if (serial !== sequence) return;
@@ -182,6 +214,7 @@ async function query(offset = 0) {
     return query();
   }
   page = result;
+  $("library-search-more").hidden = !result.searchProgress?.more;
   if (!offset) $("library-rows").replaceChildren();
   for (const session of result.entries) {
     if (
@@ -203,7 +236,10 @@ async function query(offset = 0) {
     });
     const title = button(
       session.displayTitle,
-      () => api("session-open", { key: session.key }),
+      () =>
+        session.readOnlySource
+          ? peek(session)
+          : api("session-open", { key: session.key }),
       "session-title",
     );
     if (session.provider === "claude" && session.nativeArchived)
@@ -214,6 +250,7 @@ async function query(offset = 0) {
     const info = element("div", "library-name");
     info.append(
       title,
+      element("span", "muted", sessionIdentityText(session)),
       element(
         "span",
         "muted",
@@ -240,7 +277,7 @@ async function query(offset = 0) {
         plan(session.hidden ? "unhide" : "hide", [session.key]),
       ),
     );
-    if (session.provider === "codex")
+    if (session.provider === "codex" && !session.readOnlySource)
       actions.append(
         button(
           session.nativeArchived ? "Restore in Codex" : "Archive in Codex",
@@ -262,6 +299,11 @@ async function query(offset = 0) {
   $("library-more").hidden = result.next == null;
   $("library-status").textContent =
     `${result.total.toLocaleString()} conversations · ${result.indexed.toLocaleString()} indexed · hover to preview, click to open${result.diagnostics.some((d) => d.capped) ? " · source limit reached" : ""}`;
+  if (result.searchProgress) {
+    const progress = result.searchProgress;
+    $("library-status").textContent +=
+      ` · searched ${progress.scanned}/${progress.total} transcripts${progress.partial ? ` · ${progress.partial} unreadable or partially searched` : ""}`;
+  }
   selection();
 }
 function selection() {
@@ -300,12 +342,18 @@ export function initLibrary(action, renderNow) {
       void query();
     }, 180);
   });
-  for (const id of ["library-provider", "library-age", "library-missing"])
+  for (const id of [
+    "library-provider",
+    "library-age",
+    "library-missing",
+    "library-fulltext",
+  ])
     $(id).addEventListener("change", () => {
       selected.clear();
       void query();
     });
   $("library-more").addEventListener("click", () => query(page.next));
+  $("library-search-more").addEventListener("click", () => query(0, true));
   $("select-page").addEventListener("click", () => {
     for (const row of $("library-rows").querySelectorAll(".library-row")) {
       if (selected.size >= 100) break;

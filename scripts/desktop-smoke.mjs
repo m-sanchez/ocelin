@@ -39,6 +39,30 @@ await writeFile(
         message: "Check the native conversation preview",
       },
     },
+    ...Array.from({ length: 6 }, (_, i) => [
+      {
+        type: "response_item",
+        timestamp,
+        payload: {
+          type: "function_call",
+          call_id: `diagnostic-${i}`,
+          name: "Bash",
+          arguments: JSON.stringify({ command: "fixture-check" }),
+        },
+      },
+      {
+        type: "response_item",
+        timestamp,
+        payload: {
+          type: "function_call_output",
+          call_id: `diagnostic-${i}`,
+          output: JSON.stringify({
+            exit_code: 1,
+            output: "Fixture check failed",
+          }),
+        },
+      },
+    ]).flat(),
   ]
     .map(JSON.stringify)
     .join("\n") + "\n",
@@ -75,15 +99,62 @@ for (const [id, complete] of [
   );
 }
 const binary = process.argv.slice(2).find((arg) => !arg.startsWith("--"));
-await writeFile(join(data, "subscriptions.json"), JSON.stringify({ schemaVersion: 1, providers: {
-  codex: { provider: "codex", status: "ready", sampledAt: Date.now(), plan: "pro", profileId: "codex-default", profileLabel: "Default", accountLabel: "personal@example.test", source: "Codex sign-in", windows: [
-    { id: "codex:primary", label: "Weekly", remainingPercent: 18, resetsAt: Date.now() + 7200000, minutes: 10080, extra: false },
-  ] },
-  claude: { provider: "claude", status: "ready", sampledAt: Date.now(), plan: "max", profileId: "claude-default", profileLabel: "Default", accountLabel: "claude@example.test", source: "Claude Code sign-in", windows: [
-    { id: "five_hour", label: "5-hour window", remainingPercent: 72, resetsAt: Date.now() + 3600000, minutes: 300, extra: false },
-    { id: "seven_day", label: "Weekly", remainingPercent: 44, resetsAt: Date.now() + 86400000, minutes: 10080, extra: false },
-  ] },
-} }));
+await writeFile(
+  join(data, "subscriptions.json"),
+  JSON.stringify({
+    schemaVersion: 1,
+    providers: {
+      codex: {
+        provider: "codex",
+        status: "ready",
+        sampledAt: Date.now(),
+        plan: "pro",
+        profileId: "codex-default",
+        profileLabel: "Default",
+        accountLabel: "personal@example.test",
+        source: "Codex sign-in",
+        windows: [
+          {
+            id: "codex:primary",
+            label: "Weekly",
+            remainingPercent: 18,
+            resetsAt: Date.now() + 7200000,
+            minutes: 10080,
+            extra: false,
+          },
+        ],
+      },
+      claude: {
+        provider: "claude",
+        status: "ready",
+        sampledAt: Date.now(),
+        plan: "max",
+        profileId: "claude-default",
+        profileLabel: "Default",
+        accountLabel: "claude@example.test",
+        source: "Claude Code sign-in",
+        windows: [
+          {
+            id: "five_hour",
+            label: "5-hour window",
+            remainingPercent: 72,
+            resetsAt: Date.now() + 3600000,
+            minutes: 300,
+            extra: false,
+          },
+          {
+            id: "seven_day",
+            label: "Weekly",
+            remainingPercent: 44,
+            resetsAt: Date.now() + 86400000,
+            minutes: 10080,
+            extra: false,
+          },
+        ],
+      },
+    },
+  }),
+);
 const packaged = binary && resolve(binary);
 const exe =
   packaged ||
@@ -93,6 +164,7 @@ if (process.argv.includes("--panel-launch")) args.push("ocelin://panel");
 const env = {
   ...process.env,
   OCELIN_DATA_DIR: data,
+  OCELIN_MEMORY_SMOKE: process.argv.includes("--memory") ? "1" : "0",
   OCELIN_SOURCES: JSON.stringify([
     { provider: "codex", root: codex },
     { provider: "claude", root: claude },

@@ -281,6 +281,8 @@ async function resolveJobCwd(worktreePath) {
       .replace(/\/+$/, "")
       .toLowerCase();
   const target = norm(worktreePath);
+  if (target === norm(checkoutRoot))
+    return { cwd: checkoutRoot, worktree: ctx.branch ?? null };
   const trees = await getWorktrees(ctx);
   const match = trees.find((w) => norm(w.path) === target);
   return match

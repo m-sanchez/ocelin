@@ -1,5 +1,15 @@
 # Ocelin 0.6 integration preview
 
+## 0.7.0-preview.1 follow-up
+
+The local preview adds deterministic trace diagnostics, expandable tool-span details, the `ocelin inspect` command, opt-in transcript text search, read-only WSL transcript folders and local remote mirrors. It completes the pending account identity and subscription allowance integration. Search runs in bounded batches and reports incomplete coverage; it does not yet meet the research's indexed-search latency target.
+
+The core self-test and all 735 tests pass. Development and packaged Windows desktop smoke verify diagnostic evidence, transcript search beyond the first request, span expansion across polling, account allowances and existing navigation, hooks and history controls. All 28 packaged checks pass. Both the executable and installer pass the branding verifier for all nine icon sizes. A fixture in the installed Ubuntu WSL distribution was discovered and previewed through `\\wsl.localhost`; native dispatch was correctly refused. This does not establish direct SSH or cloud monitoring.
+
+The packaged memory check confirms that tray-only mode releases hidden renderers and stops the RAM sampler. After 65 seconds idle, Electron reported 380.9 MiB of working set and 252.3 MiB of private bytes across its browser, GPU and network processes. This is one post-interaction snapshot, not a sustained private-working-set benchmark. The 150 MiB resident target remains unmet; releasing the worker and sampler is not sufficient evidence for that target.
+
+Signing configuration and a publisher-verified updater are implemented. This local installer is unsigned because no release certificate is configured. Automatic updates remain disabled in unsigned previews; a real signed update round trip remains unverified. Windows App Tasks visual proof, sustained performance targets and the physical monitor/DPI/sleep matrix remain separate acceptance gates. The historical 0.6 evidence below is retained as originally recorded.
+
 This implements the next session-management slice from the [native integration research](OCELIN-NEXT-RESEARCH.md). Desktop 0.6.2 and the optional Taskbar Widgets adapter 0.6.4 are versioned independently. This is a Windows preview, with explicit provider and shell limitations.
 
 ## Implemented paths

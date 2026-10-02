@@ -40,6 +40,8 @@ export function render(app) {
   }
   if (!(app.store.traceOpenTurns instanceof Set))
     app.store.traceOpenTurns = new Set();
+  if (!(app.store.traceOpenSpans instanceof Set))
+    app.store.traceOpenSpans = new Set();
 
   const agents = agentsList(app);
   const sel = pickSession(app, agents);
@@ -142,6 +144,33 @@ function renderTrace(app, host, d) {
   }
   const open = app.store.traceOpenTurns;
   const rows = [];
+  const diagnostics = d.diagnostics;
+  if (diagnostics?.findings.length) {
+    rows.push(
+      el(
+        "section",
+        { class: "trace-diagnostics", "aria-label": "Session diagnostics" },
+        [
+          el("h3", { text: "Worth checking" }),
+          el("p", {
+            class: "muted small",
+            text: `Heuristics from ${diagnostics.partial ? "partial" : "recorded"} history. Findings do not change session status.`,
+          }),
+          ...diagnostics.findings.map((finding) =>
+            el("button", {
+              class: "trace-finding",
+              type: "button",
+              text: `Turn ${finding.turn + 1}: ${finding.message}`,
+              onclick: () => {
+                open.add(finding.startTs);
+                app.rerender();
+              },
+            }),
+          ),
+        ],
+      ),
+    );
+  }
   for (const t of turns) {
     if (t.gapBeforeMs != null && t.gapBeforeMs > 5000)
       rows.push(
@@ -193,7 +222,7 @@ function turnBlock(app, t, open) {
     app.rerender();
   });
   const children = [head];
-  if (expanded) children.push(spanTable(t));
+  if (expanded) children.push(spanTable(t, app));
   return el(
     "div",
     { class: `trace-turn ${t.open ? "open-turn" : ""}` },
@@ -201,7 +230,7 @@ function turnBlock(app, t, open) {
   );
 }
 
-function spanTable(t) {
+function spanTable(t, app) {
   const start = Date.parse(t.startTs);
   const total = Math.max(
     1,
@@ -211,7 +240,7 @@ function spanTable(t) {
         1,
       ),
   );
-  const rows = t.spans.map((s) => spanRow(s, start, total));
+  const rows = t.spans.map((s) => spanRow(s, start, total, app));
   if (!rows.length)
     rows.push(
       el("div", {
@@ -222,7 +251,7 @@ function spanTable(t) {
   return el("div", { class: "trace-spans" }, [...rows, ruler(total)]);
 }
 
-function spanRow(s, turnStart, total) {
+function spanRow(s, turnStart, total, app) {
   const offset = Math.max(0, Date.parse(s.startTs) - turnStart);
   let leftPct = Math.min(96, (offset / total) * 100);
   let widthPct;
@@ -265,38 +294,59 @@ function spanRow(s, turnStart, total) {
   ]
     .filter(Boolean)
     .join("\n");
-  return el(
-    "div",
+  const row = el(
+    "details",
     {
       class: "trace-span-row",
+      open: app.store.traceOpenSpans.has(s.id),
       tabindex: "0",
       "data-tip": tip,
       "aria-label": tip,
     },
     [
-      el("div", { class: "trace-span-label" }, [
-        el("span", { class: "trace-tool", text: s.tool }),
-        s.agent
-          ? el("span", {
-              class: "muted small",
-              text: ` ${s.agent.agentType}: ${s.agent.description}`,
-            })
-          : s.summary
-            ? el("span", { class: "mono small muted", text: ` ${s.summary}` })
-            : null,
+      el("summary", { class: "trace-span-summary" }, [
+        el("span", { class: "trace-span-label" }, [
+          el("span", { class: "trace-tool", text: s.tool }),
+          s.agent
+            ? el("span", {
+                class: "muted small",
+                text: ` ${s.agent.agentType}: ${s.agent.description}`,
+              })
+            : s.summary
+              ? el("span", { class: "mono small muted", text: ` ${s.summary}` })
+              : null,
+        ]),
+        el("div", { class: "trace-track" }, [
+          el("div", {
+            class: `trace-bar trace-${tone}`,
+            style: `left:${leftPct}%;width:${widthPct}%`,
+          }),
+          el("span", {
+            class: "trace-dur mono small",
+            text: s.running ? `▶ ${fmtMs(s.durMs)}` : label,
+          }),
+        ]),
       ]),
-      el("div", { class: "trace-track" }, [
-        el("div", {
-          class: `trace-bar trace-${tone}`,
-          style: `left:${leftPct}%;width:${widthPct}%`,
+      el("div", { class: "trace-inspector small" }, [
+        el("p", {
+          text: `Started ${s.startTs}${s.endTs ? ` · Finished ${s.endTs}` : ""}`,
         }),
-        el("span", {
-          class: "trace-dur mono small",
-          text: s.running ? `▶ ${fmtMs(s.durMs)}` : label,
+        el("p", { text: `Status: ${status} · Duration: ${fmtMs(s.durMs)}` }),
+        el("p", {
+          class: "mono",
+          text: s.summary || "No argument summary recorded.",
         }),
+        el("p", { class: "muted", text: `Call ID: ${s.id || "unknown"}` }),
       ]),
     ],
   );
+  row.addEventListener("toggle", () => {
+    if (!row.isConnected) return;
+    row.open
+      ? app.store.traceOpenSpans.add(s.id)
+      : app.store.traceOpenSpans.delete(s.id);
+  });
+  return row;
 }
 
 function ruler(totalMs) {

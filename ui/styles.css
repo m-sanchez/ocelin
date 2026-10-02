@@ -3697,10 +3697,51 @@ kbd {
   gap: 3px;
 }
 .trace-span-row {
+  display: block;
+  padding: 5px 0;
+}
+.trace-span-row > summary {
+  cursor: pointer;
+}
+.trace-span-summary {
   display: grid;
-  grid-template-columns: minmax(160px, 28%) 1fr;
+  grid-template-columns: minmax(130px, 28%) 1fr;
   gap: 10px;
   align-items: center;
+}
+.trace-span-row .trace-track {
+  margin-top: 4px;
+}
+.trace-inspector {
+  overflow-wrap: anywhere;
+  padding: 8px;
+  background: var(--bg-2);
+}
+.trace-diagnostics {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.trace-finding {
+  display: block;
+  text-align: left;
+  white-space: normal;
+  width: 100%;
+  margin: 6px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.trace-finding:hover {
+  border-color: var(--brand);
+}
+.trace-finding:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 .trace-span-label {
   overflow: hidden;

@@ -12,6 +12,13 @@ import { homedir } from "node:os";
 import { IncrementalReader } from "./reader.mjs";
 import { recordEvents } from "./records.mjs";
 import {
+  recordIdentity,
+  mergeIdentity,
+  claudeDesktopIdentity,
+} from "./identity.mjs";
+import { CodexDesktopIdentity } from "./desktop-identity.mjs";
+import sourcePaths from "./source-path.cjs";
+import {
   reduceSession,
   presentSession,
   sortSessions,
@@ -73,16 +80,19 @@ export class SessionMonitor {
     now = Date.now,
     limit = 2000,
     desktopRoot,
+    codexLogRoot,
   } = {}) {
     this.dataDir = dataDir;
     this.sources = sources;
     this.now = now;
     this.limit = limit;
     this.desktopRoot =
-      desktopRoot ??
-      (process.env.APPDATA
-        ? join(process.env.APPDATA, "Claude", "claude-code-sessions")
-        : null);
+      desktopRoot !== undefined
+        ? desktopRoot
+        : process.env.APPDATA
+          ? join(process.env.APPDATA, "Claude", "claude-code-sessions")
+          : null;
+    this.codexIdentity = new CodexDesktopIdentity(codexLogRoot);
     this.sessions = new Map();
     this.files = new Map();
     this.acknowledgements = {};
@@ -128,6 +138,7 @@ export class SessionMonitor {
     const seen = new Set();
     for (const source of this.sources) {
       try {
+        if (!sourcePaths.sourceKind(source.root)) continue;
         const candidates = await filesUnder(
           source.root,
           ".jsonl",
@@ -157,13 +168,23 @@ export class SessionMonitor {
             this.files.set(file, {
               provider: source.provider,
               sourceRoot: source.root,
-              reader: new IncrementalReader(saved?.reader),
-              context: saved?.context || {
-                sessionId:
-                  source.provider === "claude" && safeId(id) ? id : null,
-                subagent,
-                parentId: subagent ? basename(join(file, "..", "..")) : null,
-              },
+              sourceKind:
+                source.kind === "mirror"
+                  ? "mirror"
+                  : sourcePaths.sourceKind(source.root),
+              reader: new IncrementalReader(
+                saved?.context?.identity ? saved.reader : undefined,
+              ),
+              context: saved?.context?.identity
+                ? saved.context
+                : {
+                    sessionId:
+                      source.provider === "claude" && safeId(id) ? id : null,
+                    subagent,
+                    parentId: subagent
+                      ? basename(join(file, "..", ".."))
+                      : null,
+                  },
               checkedAt: 0,
             });
           }
@@ -186,7 +207,6 @@ export class SessionMonitor {
       if (!seen.has(file)) this.files.delete(file);
     this.diagnostics = diagnostics;
     this.discoveryAt = this.now();
-    if (this.desktopRoot) await this.desktopAliases();
   }
   async desktopAliases() {
     try {
@@ -211,6 +231,10 @@ export class SessionMonitor {
                 : {}),
               desktopId: safeId(meta.sessionId) ? meta.sessionId : null,
               host: "Claude Desktop",
+              identity: mergeIdentity(
+                existing.identity,
+                claudeDesktopIdentity(this.desktopRoot, file, meta),
+              ),
             });
         } catch {}
       }
@@ -296,6 +320,22 @@ export class SessionMonitor {
         try {
           const read = await entry.reader.read(file, (record, offset) => {
             entry.context.offset = offset;
+            const recordId =
+              entry.provider === "codex"
+                ? record.type === "session_meta"
+                  ? record.payload?.id
+                  : null
+                : record.sessionId;
+            if (
+              !entry.context.subagent &&
+              safeId(recordId) &&
+              recordId !== entry.context.sessionId
+            )
+              entry.context.identity = null;
+            entry.context.identity = mergeIdentity(
+              entry.context.identity,
+              recordIdentity(entry.provider, record),
+            );
             for (const event of recordEvents(
               entry.provider,
               record,
@@ -314,6 +354,10 @@ export class SessionMonitor {
           if (session)
             this.sessions.set(key, {
               ...session,
+              readOnlySource:
+                session.readOnlySource || entry.sourceKind !== "local",
+              sourceKind: entry.sourceKind,
+              identity: mergeIdentity(session.identity, entry.context.identity),
               transcript:
                 !session.transcript || entry.context.lastTs >= session.lastTs
                   ? file
@@ -328,7 +372,20 @@ export class SessionMonitor {
         }
       }
       const drained = await this.drainHooks();
-      if (discover) await this.codexTitles();
+      if (discover) {
+        await this.codexTitles();
+        if (this.desktopRoot) await this.desktopAliases();
+        const identities = [...this.sessions.values()].some(
+          (s) => s.provider === "codex",
+        )
+          ? await this.codexIdentity.read()
+          : [];
+        for (const [id, identity] of identities) {
+          const session = this.sessions.get(sessionKey("codex", id));
+          if (session)
+            session.identity = mergeIdentity(session.identity, identity);
+        }
+      }
       const cutoff = this.now() - 30 * 24 * 60 * 60 * 1000;
       for (const [key, s] of this.sessions)
         if (s.lastTs < cutoff) {
@@ -428,6 +485,10 @@ export class SessionMonitor {
   }
   target(key) {
     const s = this.sessions.get(key);
+    if (s?.readOnlySource)
+      throw new Error(
+        "Open this conversation on its source host. Imported and WSL sources are read-only.",
+      );
     if (!s || !localPath(s.cwd))
       throw new Error("This session has no local project path");
     return { ...s };

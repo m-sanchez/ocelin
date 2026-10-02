@@ -1,5 +1,11 @@
 const { writeFileSync, renameSync, mkdirSync } = require("node:fs");
 const { join } = require("node:path");
+const allowanceFile = join(__dirname, "../../server/monitor/allowance.cjs");
+const { remainingAllowance } = require(
+  require("node:fs").existsSync(allowanceFile)
+    ? allowanceFile
+    : join(process.resourcesPath, "core/server/monitor/allowance.cjs"),
+);
 
 function widgetSetupArguments(installed, bundled, destination) {
   const version = (value) =>
@@ -14,45 +20,6 @@ function widgetSetupArguments(installed, bundled, destination) {
       return ["--settings"];
   }
   return ["--install-widget", destination];
-}
-
-function remainingAllowance(subscriptions, provider, scope, now) {
-  const profiles = [
-    subscriptions?.[provider],
-    ...(subscriptions?.profiles || []).filter((p) => p.provider === provider),
-  ].filter(Boolean);
-  const values = [];
-  let incomplete = false;
-  for (const profile of profiles) {
-    const fresh =
-      profile.status === "ready" &&
-      Number.isFinite(profile.sampledAt) &&
-      now >= profile.sampledAt &&
-      now - profile.sampledAt <= 300000;
-    const windows = (profile.windows || []).filter(
-      (w) =>
-        !w.extra &&
-        (scope === "weekly"
-          ? w.minutes === 10080
-          : scope === "five-hour"
-            ? w.minutes === 300
-            : true),
-    );
-    const valid = windows.filter(
-      (w) =>
-        fresh &&
-        Number.isFinite(w.remainingPercent) &&
-        w.remainingPercent >= 0 &&
-        w.remainingPercent <= 100 &&
-        (w.resetsAt == null || w.resetsAt > now),
-    );
-    if (!valid.length || valid.length !== windows.length) incomplete = true;
-    values.push(...valid.map((w) => w.remainingPercent));
-  }
-  return {
-    remainingPercent: values.length ? Math.min(...values) : null,
-    incomplete,
-  };
 }
 
 function taskbarSummary(state, enabled, now = Date.now()) {
@@ -90,7 +57,7 @@ function taskbarSummary(state, enabled, now = Date.now()) {
   const percentage = (provider) =>
     allowance[provider].remainingPercent == null
       ? "—"
-      : `${Math.round(allowance[provider].remainingPercent * 10) / 10}%${allowance[provider].incomplete ? "*" : ""}`;
+      : `${Math.round(allowance[provider].remainingPercent * 10) / 10}%${allowance[provider].accountCount > 1 ? " avg" : ""}${allowance[provider].incomplete ? "*" : ""}`;
   const detail =
     taskbarDetail === "memory"
       ? memoryBytes == null

@@ -110,7 +110,7 @@
             id="library-search"
             type="search"
             aria-label="Search saved conversations"
-            placeholder="Search titles, requests, projects or IDs…"
+            placeholder="Search conversations…"
           />
           <select id="library-provider" aria-label="Provider">
             <option value="all">All agents</option>
@@ -127,6 +127,10 @@
             ><input id="library-missing" type="checkbox" /> Missing
             folder</label
           >
+          <label
+            ><input id="library-fulltext" type="checkbox" /> Include transcript
+            text</label
+          >
         </div>
         <div class="selection-toolbar">
           <button id="select-page">Select visible</button
@@ -140,6 +144,9 @@
         <p id="library-status" role="status"></p>
         <div id="library-rows"></div>
         <button id="library-more" hidden>Load more conversations</button>
+        <button id="library-search-more" hidden>
+          Search remaining transcripts
+        </button>
       </section>
       <footer>
         <span id="health">Discovering local sessions…</span
@@ -211,7 +218,9 @@
           >
           <label
             >Allowance to show<select data-pref="taskbarAllowance">
-              <option value="lowest">Lowest remaining limit</option>
+              <option value="lowest">
+                Combined · lowest limit per account
+              </option>
               <option value="weekly">Weekly</option>
               <option value="five-hour">5-hour window</option>
             </select></label
@@ -291,9 +300,20 @@
           </p>
           <div id="sources"></div>
           <div id="connection-status"></div>
+          <p>
+            WSL: choose a transcript folder under \\wsl.localhost\DISTRO. For
+            remote machines, sync transcripts to a local folder and add it as a
+            read-only mirror.
+          </p>
           <div class="buttons">
             <button data-source="codex">Add Codex sessions folder</button
             ><button data-source="claude">Add Claude projects folder</button>
+            <button data-source="codex" data-mirror="true">
+              Add remote Codex mirror
+            </button>
+            <button data-source="claude" data-mirror="true">
+              Add remote Claude mirror
+            </button>
           </div>
           <div id="integrations"></div>
         </fieldset>
@@ -329,6 +349,18 @@
         </fieldset>
         <fieldset>
           <legend>About Ocelin</legend>
+          <p id="update-status" role="status"></p>
+          <label
+            ><input type="checkbox" data-pref="automaticUpdates" /> Download
+            verified stable updates automatically and install when Ocelin
+            quits</label
+          >
+          <div class="buttons">
+            <button id="update-check">Check for updates</button>
+            <button id="update-download" hidden>Download update</button>
+            <button id="update-install" hidden>Restart and install</button>
+            <button id="update-releases">Preview downloads</button>
+          </div>
           <p id="version"></p>
           <p>
             A local companion for Codex and Claude. No account or API key

@@ -110,6 +110,15 @@
   margin-top: 12px;
   font-size: 11px;
 }
+.allowance-details > summary {
+  cursor: pointer;
+  margin: 12px 0;
+}
+.allowance-total {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 8px 0;
+}
 .allowance-extra > summary {
   cursor: pointer;
   color: var(--muted, #a9b5a8);

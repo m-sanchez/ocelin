@@ -1,5 +1,9 @@
 const idPattern = /^[a-zA-Z0-9_-]{1,128}$/;
 function sessionLink(session) {
+  if (session?.readOnlySource)
+    throw new Error(
+      "Open this conversation on its source host. Imported and WSL sources are read-only.",
+    );
   if (!session || !idPattern.test(session.sessionId))
     throw new Error("Invalid conversation ID");
   if (session.provider === "codex")

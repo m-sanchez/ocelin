@@ -14,6 +14,7 @@ function nativeSnapshot(state, enabled, now = Date.now()) {
   const entries = fresh
     ? state.sessions.filter(
         (s) =>
+          !s.readOnlySource &&
           !s.stale &&
           (s.attention || s.execution === "running" || s.execution === "error"),
       )

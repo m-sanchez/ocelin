@@ -1,3 +1,5 @@
+import { sessionIdentityText } from "../../ui/shared/session-identity.mjs";
+
 export const projectKey = (s) =>
   s.cwd
     ? s.cwd.replaceAll("\\", "/").replace(/\/$/, "").toLowerCase()
@@ -37,7 +39,7 @@ export function groupSessions(
     if (!isActive(s) && s.lastTs <= historySince) continue;
     if (
       term &&
-      !`${s.title} ${s.displayTitle || ""} ${s.cwd} ${s.provider} ${s.sessionId}`
+      !`${s.title} ${s.displayTitle || ""} ${s.cwd} ${s.provider} ${s.sessionId} ${sessionIdentityText(s)} ${(s.profiles || []).map((p) => p.label).join(" ")}`
         .toLowerCase()
         .includes(term)
     )

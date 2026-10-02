@@ -1,6 +1,6 @@
 # Ocelin delivery tracker
 
-The [0.6 implementation and validation record](OCELIN-0.6-VALIDATION.md) tracks the current native/session-management work against the [17 September research](OCELIN-NEXT-RESEARCH.md). Exact conversation dispatch, previews, a separate history library and Codex archive/restore are implemented. Native shell rendering, production signing and the memory target retain separate acceptance gates. The 0.5 record below is historical.
+The [implementation and validation record](OCELIN-0.6-VALIDATION.md) tracks the current native/session-management work against the [17 September research](OCELIN-NEXT-RESEARCH.md). The 0.7.0 preview adds trace diagnostics and inspection, bounded transcript text search, account and allowance integration, read-only WSL folders and remote mirrors, idle resource release, and a signed-update path. Production signing needs a configured certificate. Direct remote transport, native shell rendering, sustained performance targets and physical display validation retain separate acceptance gates. The 0.5 record below is historical.
 
 Approved scope: native Windows monitoring for Codex and Claude, with independently selectable tray, floating bar, and dashboard; the approved golden pixel ocelot; compatible browser operation; GitHub and personal website updates.
 
