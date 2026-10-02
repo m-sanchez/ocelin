@@ -167,7 +167,7 @@ const HUBS = [
       "worktrees",
     ],
   },
-  { key: "config", label: "Configuration", render: config },
+  { key: "config", label: "Settings", render: config },
 ];
 const HUB_BY_KEY = Object.fromEntries(HUBS.map((h) => [h.key, h]));
 // Minimal config the pure route resolver needs (hub key → its tab ids).
@@ -262,6 +262,7 @@ function loadConfig() {
   }
   const devMode = params.has("dev") || params.has("clawdDemo");
   return {
+    display: {},
     theme: saved.theme || "system",
     motion: saved.motion || "full",
     badges: saved.badges || "on",
@@ -727,6 +728,8 @@ function reviewForgeHeader() {
 function setActiveNav(name) {
   for (const a of document.querySelectorAll(".nav-link")) {
     const active = a.getAttribute("data-route") === name;
+    a.hidden = !active && !app.config.display.advancedNavigation &&
+      ["run", "worktrees", "review", "prompt", "delivery", "health"].includes(a.dataset.route);
     a.classList.toggle("active", active);
     if (active) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
@@ -1267,6 +1270,10 @@ function boot() {
   if (["codex", "claude"].includes(requested.get("provider")) && /^[a-zA-Z0-9_-]{1,128}$/.test(requested.get("session") || ""))
     store.feedSession = { id: requested.get("session"), provider: requested.get("provider") };
   applyConfig();
+  api.displayPreferences().then((display) => {
+    app.config.display = display;
+    route();
+  }).catch(() => {});
   initTooltips();
   decorateNavKeys();
   document.getElementById("theme-btn")?.addEventListener("click", cycleTheme);

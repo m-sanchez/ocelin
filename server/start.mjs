@@ -18,6 +18,7 @@
  * tree; it polls adapters per request and on a bounded SSE interval.
  */
 import http from "node:http";
+import { readDisplay, saveDisplay } from "./core/display-preferences.mjs";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import {
   readdirSync,
@@ -722,6 +723,23 @@ const server = http.createServer(async (request, response) => {
 
   try {
     // ── Mutating actions ──
+    if (path === "/api/display-preferences") {
+      const file = join(
+        process.env.OCELIN_DATA_DIR || runtimeDir,
+        "workspace-display.json",
+      );
+      if (method === "GET") return sendJson(response, 200, readDisplay(file));
+      if (method !== "POST")
+        return sendJson(response, 405, { error: "Method not allowed" });
+      if (!isSameOrigin(request))
+        return sendJson(response, 403, { error: "Cross-origin request refused" });
+      try {
+        const patch = JSON.parse(await readBody(request, 4096));
+        return sendJson(response, 200, saveDisplay(file, patch));
+      } catch (error) {
+        return sendJson(response, 400, { error: error.message });
+      }
+    }
     if (path.startsWith("/api/actions/")) {
       if (method !== "POST")
         return sendJson(response, 405, { error: "Method not allowed" });

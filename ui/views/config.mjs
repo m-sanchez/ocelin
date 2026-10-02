@@ -2,10 +2,53 @@
 import { el, card, pill, clear, emptyState } from "../lib/dom.mjs";
 import { masonry } from "../lib/masonry.mjs";
 import { openWizard } from "../lib/wizard.mjs";
+import { displayOptions, normalizeDisplay } from "../lib/display.mjs";
 
 /** Configuration, presentation + behaviour prefs (persisted), plus integration status. */
 export function render(app) {
   const cfg = app.config;
+  const saveDisplay = async (patch) => {
+    try {
+      cfg.display = await app.api.saveDisplayPreferences(patch);
+      app.rerender();
+    } catch (error) {
+      app.toast(error.message, "err");
+    }
+  };
+  const display = card("What you see", [
+    el("p", {
+      class: "muted small",
+      text: "Sessions and attention stay visible. Add the information you use. Changes save automatically.",
+    }),
+    el("div", { class: "row" }, [
+      el("button", {
+        class: "btn small",
+        text: "Keep it simple",
+        onClick: () => saveDisplay(normalizeDisplay()),
+      }),
+      el("button", {
+        class: "btn small",
+        text: "Show all details",
+        onClick: () =>
+          saveDisplay(
+            Object.fromEntries(
+              Object.keys(displayOptions).map((key) => [key, true]),
+            ),
+          ),
+      }),
+    ]),
+    ...Object.entries(displayOptions).map(([key, label]) =>
+      el("label", { class: "setting-row" }, [
+        el("span", { text: label }),
+        el("input", {
+          type: "checkbox",
+          "data-display": key,
+          checked: !!cfg.display?.[key],
+          onChange: (event) => saveDisplay({ [key]: event.target.checked }),
+        }),
+      ]),
+    ),
+  ]);
 
   const themeSel = choice(
     ["system", "light", "dark"],
@@ -178,7 +221,14 @@ export function render(app) {
     browserNote,
   ]);
   requestAnimationFrame(() => masonry(tiles));
-  return el("div", { class: "view view-config" }, [tiles]);
+  const more = el("details", { class: "settings-more" }, [
+    el("summary", { text: "Appearance, connections and advanced settings" }),
+    tiles,
+  ]);
+  more.addEventListener("toggle", () => {
+    if (more.open) requestAnimationFrame(() => masonry(tiles));
+  });
+  return el("div", { class: "view view-config" }, [display, more]);
 }
 
 /**
@@ -192,7 +242,10 @@ function configMapCard(app) {
     el("span", {
       class: `cfgmap-chip ${used > 0 ? "used" : "dead"} ${extra}`,
       text: used > 0 ? `${name} ×${used}` : name,
-      "data-tip": used > 0 ? `${used} call(s) in recent sessions` : "no calls in recent sessions",
+      "data-tip":
+        used > 0
+          ? `${used} call(s) in recent sessions`
+          : "no calls in recent sessions",
     });
   const group = (label, items, mapper) =>
     items.length
@@ -217,11 +270,7 @@ function configMapCard(app) {
             : "Loaded every session",
         }),
       ),
-      group(
-        "Hooks",
-        d.hooks,
-        (h) => chip(`${h.event}`, 1, "hook"),
-      ),
+      group("Hooks", d.hooks, (h) => chip(`${h.event}`, 1, "hook")),
       d.observedUnknown &&
       (d.observedUnknown.agents.length ||
         d.observedUnknown.commands.length ||
@@ -310,7 +359,6 @@ function credentialsCard(app) {
     help: "Edit credentials in .claude/settings.local.json. Secrets are write-only: the panel shows only whether they are set and never sends their value to the browser. A .bak backup is written on save.",
   });
 }
-
 
 function inp(attrs) {
   return /** @type {HTMLInputElement} */ (

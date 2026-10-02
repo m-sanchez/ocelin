@@ -1,5 +1,9 @@
 # Ocelin for Windows
 
+Version 0.7.0-preview.2 starts with a simpler session panel and dashboard. Open **Settings → What you see** to enable counts, allowances, memory, the workspace launcher, account/profile labels or help text individually. **Keep it simple** resets just these display choices; **Show all details** restores them. Other settings are grouped into collapsed sections.
+
+The full project workspace also has **Settings → What you see**, with separate switches for charts, runs/jobs, repository cards, health, activity and advanced navigation. Sessions and attention remain visible. Workspace display choices persist across reopening; the desktop shares them across project workspaces. Standalone browser installations store them in the panel runtime directory. These controls change presentation, not monitoring or notifications.
+
 Version 0.6.8 separates installed, development and test Windows identities. It backs up a legacy `Electron.lnk` only when the shortcut claims Ocelin's installed app ID and points to a verified Ocelin development package. This resolves a shortcut collision that can make Windows use Electron's taskbar icon despite correct window icons. Backups are kept in `%LOCALAPPDATA%\Ocelin\shortcut-backups`. The taskbar widget stays at 0.6.5.
 
 Version 0.6.7 gives Windows a dedicated Ocelin icon file and reapplies window branding when a workspace is shown or restored. Packaged checks compare the workspace's actual small and large Windows icons with the pet artwork, including after reopening. The taskbar widget remains at 0.6.5.

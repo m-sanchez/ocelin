@@ -20,7 +20,7 @@ function agentsCard(s, app) {
   const active = agents.filter((a) => a.active);
   const recent = agents.filter((a) => !a.active).slice(0, 4);
   const shown = [...active, ...recent].slice(0, 5);
-  const trend = agentTrend(s);
+  const trend = app.config.display?.metrics ? agentTrend(s) : null;
   const list = shown.length
     ? el(
         "ul",
@@ -454,6 +454,7 @@ const SEV_TONE = { blocking: "danger", attention: "warn", warning: "warn" };
 /** Overview, strict hierarchy: attention → active runs → selected run → health → evidence → activity. */
 export function render(app) {
   const s = app.snapshot;
+  const display = app.config.display || {};
   const runs = s?.runs ?? [];
   const active = runs.filter(
     (r) => r.status === "running" || r.status === "waiting",
@@ -465,26 +466,40 @@ export function render(app) {
   // the screen grows, with no height gaps between uneven cards.
   const tiles = el("div", { class: "grid-tiles" }, [
     agentsCard(s, app),
-    activeRunsCard(active, app, selected),
-    selectedRunCard(selected, app),
-    jobsWidget(app),
-    healthCard(s, app),
-    pushReadinessCard(s, app),
-    forgeCard(s),
-    panelHealthCard(s),
-    evidenceCard(s, app),
-    recentCommitsCard(s),
-    activityCard(app),
+    ...(display.runs
+      ? [
+          activeRunsCard(active, app, selected),
+          selectedRunCard(selected, app),
+          jobsWidget(app),
+        ]
+      : []),
+    ...(display.health ? [healthCard(s, app), panelHealthCard(s)] : []),
+    ...(display.repository
+      ? [
+          pushReadinessCard(s, app),
+          forgeCard(s),
+          evidenceCard(s, app),
+          recentCommitsCard(s),
+        ]
+      : []),
+    ...(display.activity ? [activityCard(app)] : []),
   ]);
   requestAnimationFrame(() => masonry(tiles));
 
   return el("div", { class: "view view-overview" }, [
-    kpiRow(s, app),
-    pulseStrip(app),
+    el("div", { class: "row", style: "justify-content:flex-end" }, [
+      el("button", {
+        class: "btn small",
+        text: "Customize view",
+        onClick: () => app.navigate("#/config"),
+      }),
+    ]),
+    display.metrics ? kpiRow(s, app) : null,
+    display.activity ? pulseStrip(app) : null,
     attentionCard(attention, app),
-    liveActivityCard(s, app),
+    display.activity ? liveActivityCard(s, app) : null,
     tiles,
-    throughputCard(s),
+    display.metrics ? throughputCard(s) : null,
   ]);
 }
 

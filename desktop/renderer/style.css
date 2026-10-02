@@ -798,6 +798,32 @@ dialog header {
 .settings-body {
   padding: 12px 20px 20px;
 }
+.settings-section {
+  border-bottom: 1px solid var(--line);
+}
+.settings-section > summary {
+  cursor: pointer;
+  padding: 16px 0;
+  font-weight: 600;
+}
+.settings-section > summary::after { content: "+"; float: right; }
+.settings-section[open] > summary::after { content: "−"; }
+.settings-section fieldset {
+  border: 0;
+  padding-top: 0;
+}
+body[data-session-details="false"] .session-identity-detail {
+  display: none;
+}
+body[data-hints="false"] .session .age {
+  visibility: hidden;
+}
+.overview:has(#counts[hidden]):has(#memory-details[hidden]) {
+  display: none;
+}
+footer:has(#health[hidden]):has(#memory-note[hidden]) {
+  display: none;
+}
 fieldset {
   border: 0;
   border-bottom: 1px solid var(--line);

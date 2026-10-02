@@ -1,6 +1,6 @@
 {
   "name": "clawdeck-panel",
-  "version": "0.7.0-preview.1",
+  "version": "0.7.0-preview.2",
   "description": "Ocelin: a local dashboard for Codex and Claude Code, with an optional Windows companion. Zero-dependency core, loopback-only.",
   "license": "MIT",
   "author": "Miguel Sanchez",
