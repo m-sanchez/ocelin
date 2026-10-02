@@ -209,6 +209,49 @@ module.exports = async function smoke({
     report.checks.push(
       "Packaged runtime captured a redacted hook and selectively removed its fixture configuration",
     );
+    await action("show", { surface: "dashboard" });
+    const displayWindow = windows.get("dashboard");
+    await until(
+      () =>
+        displayWindow.webContents.executeJavaScript(
+          "!!document.querySelector('#sessions .session') && document.querySelector('#subscriptions').hidden && document.querySelector('#resources').hidden && document.querySelector('.workspace-launcher').hidden",
+        ),
+      "simple desktop defaults",
+    );
+    writeFileSync(
+      join(output, "simple-dashboard.png"),
+      (await displayWindow.webContents.capturePage()).toPNG(),
+    );
+    await displayWindow.webContents.executeJavaScript(
+      "document.getElementById('settings').click(); void 0",
+    );
+    await displayWindow.webContents.executeJavaScript(
+      "new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+    );
+    writeFileSync(
+      join(output, "display-settings.png"),
+      (await displayWindow.webContents.capturePage()).toPNG(),
+    );
+    await displayWindow.webContents.executeJavaScript(
+      "document.querySelector('[data-pref=showAllowances]').click(); void 0",
+    );
+    await until(
+      () => getState().preferences.showAllowances,
+      "display preference saves",
+    );
+    assert.equal(getState().preferences.showMemory, false);
+    await displayWindow.webContents.executeJavaScript(
+      "document.getElementById('display-all').click(); document.getElementById('preferences').close(); void 0",
+    );
+    await until(
+      () =>
+        getState().preferences.showMemory &&
+        getState().preferences.showWorkspace,
+      "show all desktop details",
+    );
+    report.checks.push(
+      "Simple desktop defaults hide optional information; settings restore individual sections or all details",
+    );
     for (const kind of ["dashboard", "bar", "tray"]) {
       await action("show", { surface: kind });
       const window = windows.get(kind);
@@ -733,6 +776,66 @@ module.exports = async function smoke({
       "full workspace overview and navigation",
     );
     assert.equal(getState().preferences.lastProjectPath, selected.cwd);
+    const workspace = getProject().window;
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "document.querySelector('[data-route=worktrees]').hidden",
+        ),
+      "simple workspace navigation",
+    );
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "!!document.querySelector('.agent-item')",
+        ),
+      "simple workspace sessions",
+    );
+    writeFileSync(
+      join(output, "simple-workspace.png"),
+      (await workspace.webContents.capturePage()).toPNG(),
+    );
+    await workspace.webContents.executeJavaScript(
+      "location.hash = '/config'; void 0",
+    );
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "!!document.querySelector('[data-display=repository]')",
+        ),
+      "workspace display settings",
+    );
+    await workspace.webContents.executeJavaScript(
+      "document.querySelector('[data-display=repository]').click(); void 0",
+    );
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "document.querySelector('[data-display=repository]')?.checked",
+        ),
+      "workspace display save",
+    );
+    workspace.webContents.reload();
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "document.querySelector('[data-display=repository]')?.checked",
+        ),
+      "workspace display persists after reload",
+    );
+    await workspace.webContents.executeJavaScript(
+      "document.querySelector('[data-display=repository]').click(); void 0",
+    );
+    await until(
+      () =>
+        workspace.webContents.executeJavaScript(
+          "document.querySelector('[data-display=repository]')?.checked === false",
+        ),
+      "workspace returns to simple",
+    );
+    report.checks.push(
+      "Workspace starts with simple navigation; optional cards persist after reopening and can be hidden again",
+    );
     await verifyWindowIcon(getProject().window);
     report.checks.push(
       "Visible Open workspace button opens the original full Overview, Worktrees and Review app",

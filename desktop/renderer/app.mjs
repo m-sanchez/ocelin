@@ -179,6 +179,17 @@ if (surface === "tray") {
 }
 function render(value) {
   state = value;
+  const display = value.preferences;
+  $("counts").hidden = !display.showSummary;
+  $("subscriptions").hidden = !display.showAllowances;
+  $("resources").hidden = !display.showMemory;
+  $("memory-details").hidden = !display.showMemory;
+  $("memory-note").hidden = !display.showMemory;
+  $("health").hidden = !display.showHints;
+  document.querySelector(".workspace-launcher").hidden = !display.showWorkspace;
+  document.querySelector(".view-hint").hidden = !display.showHints;
+  document.body.dataset.sessionDetails = String(display.showSessionDetails);
+  document.body.dataset.hints = String(display.showHints);
   $("update-status").textContent =
     value.updates?.message || "Updates unavailable";
   $("update-check").disabled = [
@@ -327,6 +338,34 @@ function renderWorkspaceLauncher(value) {
     );
 }
 const accountProfileDrafts = new Map();
+for (const id of ["display-simple", "display-all"])
+  $(id).addEventListener("click", () =>
+    action("preferences", {
+      showSummary: true,
+      ...Object.fromEntries(
+        [
+          "showAllowances",
+          "showMemory",
+          "showWorkspace",
+          "showSessionDetails",
+          "showHints",
+        ].map((key) => [key, id === "display-all"]),
+      ),
+    }),
+  );
+for (const fieldset of document.querySelectorAll(
+  ".settings-body > fieldset:not(#display-settings)",
+)) {
+  const section = node("details", "settings-section");
+  const heading = node(
+    "summary",
+    "",
+    fieldset.querySelector("legend").textContent,
+  );
+  fieldset.before(section);
+  section.append(heading, fieldset);
+  fieldset.querySelector("legend").classList.add("sr-only");
+}
 for (const name of [
   "update-check",
   "update-download",
@@ -526,7 +565,11 @@ function sessionRow(s) {
   );
   const label = node("div", "session-name");
   label.append(title);
-  const identity = node("span", "session-profile", sessionIdentityText(s));
+  const identity = node(
+    "span",
+    "session-profile session-identity-detail",
+    sessionIdentityText(s),
+  );
   identity.title =
     "Clients and accounts found in saved session records; not necessarily the current sign-in.";
   label.append(identity);
@@ -541,7 +584,7 @@ function sessionRow(s) {
   if (s.profiles?.length) {
     const profile = node(
       "span",
-      "session-profile",
+      "session-profile session-identity-detail",
       `Profile: ${s.profiles.map((p) => p.label).join(" · ")}`,
     );
     profile.title =
@@ -566,6 +609,14 @@ function sessionRow(s) {
   summary.dataset.focus = `details:${s.key}`;
   const menu = node("div", "action-panel");
   menu.append(
+    node("div", "", sessionIdentityText(s)),
+    s.profiles?.length
+      ? node(
+          "div",
+          "",
+          `Profiles: ${s.profiles.map((p) => p.label).join(" · ")}`,
+        )
+      : node("span"),
     node(
       "div",
       "",

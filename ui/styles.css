@@ -31,6 +31,9 @@
   --tip-border: #ded4bd;
   color-scheme: light;
 }
+.nav-link[hidden] { display: none; }
+.settings-more { margin-top: 20px; }
+.settings-more > summary { cursor: pointer; padding: 16px; font-weight: 600; }
 
 [data-theme="dark"] {
   --brand: #f0ad3d;

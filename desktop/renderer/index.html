@@ -163,6 +163,45 @@
         </header>
       </form>
       <div class="settings-body">
+        <fieldset id="display-settings">
+          <legend>What you see</legend>
+          <p>
+            Start with sessions and their status. Add details when you need
+            them.
+          </p>
+          <div class="buttons">
+            <button id="display-simple">Keep it simple</button
+            ><button id="display-all">Show all details</button>
+          </div>
+          <label
+            ><input type="checkbox" data-pref="showSummary" /> Session
+            counts</label
+          >
+          <label
+            ><input type="checkbox" data-pref="showAllowances" /> Subscription
+            allowances</label
+          >
+          <label
+            ><input type="checkbox" data-pref="showMemory" /> App memory
+            usage</label
+          >
+          <label
+            ><input type="checkbox" data-pref="showWorkspace" /> Project
+            workspace launcher</label
+          >
+          <label
+            ><input type="checkbox" data-pref="showSessionDetails" /> Accounts
+            and profiles on session rows</label
+          >
+          <label
+            ><input type="checkbox" data-pref="showHints" /> Help text and
+            update timestamps</label
+          >
+          <p>
+            Applies to the session panel and dashboard. In a project workspace,
+            use Settings → What you see.
+          </p>
+        </fieldset>
         <fieldset>
           <legend>Where Ocelin lives</legend>
           <p>

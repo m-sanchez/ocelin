@@ -124,9 +124,19 @@ test("sensitive reads refuse a missing token", async () => {
     "/api/session-feed?session=00000000-0000-0000-0000-000000000000",
     "/api/session-tasks?session=00000000-0000-0000-0000-000000000000",
     "/api/trace?session=00000000-0000-0000-0000-000000000000",
+    "/api/display-preferences",
   ]) {
     assert.equal((await get(path, null)).status, 401, path);
   }
+});
+
+test("workspace display writes require authorization, same origin and allowlisted booleans", async () => {
+  assert.equal((await post("/api/display-preferences", null, { metrics: true })).status, 401);
+  const foreign = await fetch(`${origin()}/api/display-preferences`, { method: "POST", headers: { "x-panel-token": token, origin: "https://example.invalid" }, body: JSON.stringify({ metrics: true }) });
+  assert.equal(foreign.status, 403);
+  assert.equal((await post("/api/display-preferences", token, { command: "anything" })).status, 400);
+  assert.equal((await post("/api/display-preferences", token, { metrics: true })).status, 200);
+  assert.equal((await (await get("/api/display-preferences", token)).json()).metrics, true);
 });
 
 test("/api/trace validates the session id and returns the trace shape", async () => {

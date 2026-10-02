@@ -26,6 +26,12 @@ const defaults = {
   sound: false,
   startup: false,
   automaticUpdates: false,
+  showSummary: true,
+  showAllowances: false,
+  showMemory: false,
+  showWorkspace: false,
+  showSessionDetails: false,
+  showHints: false,
   mutedProviders: [],
   mutedProjects: [],
   sources: null,
@@ -48,6 +54,12 @@ function validate(input, previous = defaults) {
     "taskbarBridge",
     "nativeTasks",
     "automaticUpdates",
+    "showSummary",
+    "showAllowances",
+    "showMemory",
+    "showWorkspace",
+    "showSessionDetails",
+    "showHints",
   ])
     if (typeof input[key] === "boolean") next[key] = input[key];
   for (const [key, values] of Object.entries({

@@ -21,6 +21,12 @@ async function asJson(response) {
 }
 
 export const api = {
+  displayPreferences: () => fetch("/api/display-preferences").then(asJson),
+  saveDisplayPreferences: (value) => fetch("/api/display-preferences", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(value),
+  }).then(asJson),
   /** With `opts.etag`, resolves to null when the server answers 304 (unchanged). */
   snapshot: (opts = {}) =>
     fetch(
