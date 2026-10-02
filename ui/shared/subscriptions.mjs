@@ -47,7 +47,11 @@ export function subscriptionView(
   const heading = node("div", "allowance-heading");
   heading.append(
     node("h2", "", "Subscription allowance"),
-    node("span", "allowance-muted", "% remaining · shared per account"),
+    node(
+      "span",
+      "allowance-muted",
+      "Combined % remaining · average per account",
+    ),
   );
   section.append(heading);
   const cards = node("div", "allowance-cards");
@@ -56,6 +60,37 @@ export function subscriptionView(
     providers?.claude || { provider: "claude" },
     ...(Array.isArray(providers?.profiles) ? providers.profiles : []),
   ];
+  const totals = node("div", "allowance-cards");
+  for (const provider of ["codex", "claude"]) {
+    const total = providers?.totals?.lowest?.[provider];
+    if (!total) continue;
+    const card = node("article", "allowance-card");
+    const fresh =
+      providers.totalsAt <= now && now - providers.totalsAt <= 300000;
+    card.append(
+      node("strong", "", provider === "codex" ? "Codex" : "Claude"),
+      node(
+        "p",
+        "allowance-total",
+        fresh && total.remainingPercent != null
+          ? `${total.remainingPercent.toLocaleString(undefined, { maximumFractionDigits: 1 })}% left${total.incomplete ? "*" : ""}`
+          : "Unavailable",
+      ),
+      node(
+        "span",
+        "allowance-muted",
+        `${fresh ? total.availableCount : 0} of ${total.accountCount} accounts reporting`,
+      ),
+    );
+    totals.append(card);
+  }
+  if (totals.children.length) section.append(totals);
+  const connected = new Set(
+    values.map((value) => value.accountKey).filter(Boolean),
+  );
+  const observed = (providers?.observedAccounts || []).filter(
+    (account) => !connected.has(account.key),
+  );
   for (const value of values) {
     const provider = value.provider;
     const card = node("article", "allowance-card");
@@ -67,6 +102,17 @@ export function subscriptionView(
     );
     if (value?.plan) header.append(node("span", "allowance-plan", value.plan));
     card.append(header);
+    const clients = providers?.observedAccounts?.find(
+      (a) => a.key === value.accountKey,
+    )?.clients;
+    if (clients?.length)
+      card.append(
+        node(
+          "p",
+          "allowance-muted",
+          `Seen in ${clients.map((c) => (c === "cli" ? "CLI" : c === "desktop" ? "Desktop" : c)).join(" / ")}`,
+        ),
+      );
     if (value.profileLabel || value.accountLabel) {
       const account = node("div", "allowance-account");
       account.append(
@@ -139,7 +185,37 @@ export function subscriptionView(
     );
     cards.append(card);
   }
-  section.append(cards);
+  for (const account of observed) {
+    const card = node("article", "allowance-card");
+    card.append(
+      node(
+        "strong",
+        "",
+        `${account.provider === "codex" ? "Codex" : "Claude"} · ${account.label}`,
+      ),
+      node(
+        "p",
+        "allowance-muted",
+        `${account.clients?.map((c) => (c === "cli" ? "CLI" : c === "desktop" ? "Desktop" : c)).join(" / ") || "Saved sessions"} · allowance unavailable`,
+      ),
+      node(
+        "p",
+        "allowance-muted",
+        "Connect this account's signed-in profile in Settings to read its allowance.",
+      ),
+    );
+    cards.append(card);
+  }
+  const details = node("details", "allowance-details");
+  details.append(node("summary", "", "Account details"), cards);
+  section.append(details);
+  section.append(
+    node(
+      "p",
+      "allowance-muted",
+      "Accounts weighted equally. * Some accounts or profiles have no current reading.",
+    ),
+  );
   if (values.length > 2)
     section.append(
       node(

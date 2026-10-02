@@ -5,6 +5,12 @@ import { ocelotIcon } from "../ui/ocelin/ocelot-art.mjs";
 
 const assets = fileURLToPath(new URL("./assets/", import.meta.url));
 mkdirSync(assets, { recursive: true });
+writeFileSync(
+  `${assets}/update-policy.json`,
+  JSON.stringify({
+    publisher: process.env.OCELIN_SIGNING_PUBLISHER?.trim() || null,
+  }),
+);
 const svg = ocelotIcon(16);
 const paths = [...svg.matchAll(/<path fill="(#[a-f0-9]+)" d="([^"]+)"/g)].map(
   ([, color, path]) => {

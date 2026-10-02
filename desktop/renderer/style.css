@@ -627,9 +627,8 @@ h2 {
 }
 .session-name {
   min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  gap: 2px;
 }
 .session-title {
   border: 0;

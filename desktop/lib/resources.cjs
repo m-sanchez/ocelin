@@ -8,6 +8,12 @@ class Resources {
     this.value = { status: "loading", groups: [], sampledAt: null };
   }
   start() {
+    if (this.active) return;
+    this.active = true;
+    this.stopped = false;
+    this.lastReceived = 0;
+    this.previous = null;
+    this.value = { ...this.value, status: "loading", sampledAt: null };
     if (process.platform !== "win32")
       return this.fail("Memory sampling is available on Windows");
     const executable = join(
@@ -35,9 +41,11 @@ class Resources {
       ],
       { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] },
     );
+    const child = this.child;
     let buffer = "";
     this.child.stdout.setEncoding("utf8");
     this.child.stdout.on("data", (chunk) => {
+      if (this.child !== child) return;
       buffer += chunk;
       if (buffer.length > 1024 * 1024) {
         this.fail("Memory sample exceeded its limit");
@@ -63,11 +71,12 @@ class Resources {
       }
     });
     this.child.stderr.on("data", () => {});
-    this.child.on("error", () =>
-      this.fail("Windows process counters are unavailable"),
-    );
+    this.child.on("error", () => {
+      if (this.child === child)
+        this.fail("Windows process counters are unavailable");
+    });
     this.child.on("exit", () => {
-      if (!this.stopped)
+      if (!this.stopped && this.child === child)
         this.fail("Memory sampler stopped; reopen Ocelin to retry");
     });
     this.watchdog = setInterval(() => {
@@ -81,9 +90,16 @@ class Resources {
     this.onChange(this.value);
   }
   stop() {
+    this.active = false;
     this.stopped = true;
     clearInterval(this.watchdog);
     this.child?.kill();
+    this.child = null;
+    this.value = {
+      ...this.value,
+      status: "paused",
+      message: "RAM sampling resumes when a surface needs it.",
+    };
   }
 }
 module.exports = { Resources };

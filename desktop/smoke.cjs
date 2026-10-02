@@ -549,6 +549,21 @@ module.exports = async function smoke({
     );
     const peek = await action("session-preview", { key: claudeSession.key });
     assert.ok(peek.request.includes("Windows integration"));
+    assert.ok(Array.isArray(peek.diagnostics.findings));
+    const fullText = await action("library-query", {
+      fullText: true,
+      search: "fixture is complete",
+    });
+    assert.ok(fullText.entries.some((entry) => entry.provider === "claude"));
+    assert.equal(
+      (await action("library-query", { search: "fixture is complete" })).total,
+      0,
+    );
+    assert.equal(getState().updates.status, "unavailable");
+    await assert.rejects(action("update-check"), /signed/);
+    report.checks.push(
+      "Full transcript search finds later responses; previews carry diagnostics; unsigned builds refuse automatic updates",
+    );
     const link = await action("session-open", { key: claudeSession.key });
     assert.equal(
       link.url,
@@ -651,6 +666,39 @@ module.exports = async function smoke({
         "Workspace small and large Windows icons match Ocelin and recover on reopening",
       );
     }
+    await project.window.webContents.executeJavaScript(
+      "location.hash = '/activity/trace'; void 0",
+    );
+    await until(
+      async () =>
+        project.window.webContents.executeJavaScript(
+          "document.querySelector('.trace-diagnostics')?.textContent.includes('failed 6 times')",
+        ),
+      "trace diagnostic evidence",
+    );
+    await project.window.webContents.executeJavaScript(
+      "document.querySelector('.trace-span-row summary').click(); void 0",
+    );
+    assert.equal(
+      await project.window.webContents.executeJavaScript(
+        "document.querySelector('.trace-span-row').open && document.querySelector('.trace-inspector').textContent.includes('Call ID: diagnostic-0')",
+      ),
+      true,
+    );
+    await new Promise((done) => setTimeout(done, 4500));
+    assert.equal(
+      await project.window.webContents.executeJavaScript(
+        "document.querySelector('.trace-span-row').open",
+      ),
+      true,
+    );
+    writeFileSync(
+      join(output, "trace-diagnostics.png"),
+      (await project.window.webContents.capturePage()).toPNG(),
+    );
+    report.checks.push(
+      "Diagnostic rules detect repeated failures; trace spans expand with call IDs and timing",
+    );
     await project.window.webContents.executeJavaScript(
       "location.hash = '/cost'; void 0",
     );
@@ -895,6 +943,37 @@ module.exports = async function smoke({
         app.setLoginItemSettings({ ...login, openAtLogin: original });
       }
     }
+    if (process.env.OCELIN_MEMORY_SMOKE === "1") {
+      await action("preferences", {
+        tray: true,
+        bar: false,
+        dashboard: false,
+        taskbarBridge: false,
+        nativeTasks: false,
+      });
+      await until(
+        () => [...windows.values()].every((window) => !window.isVisible()),
+        "tray-only idle memory",
+      );
+      await new Promise((done) => setTimeout(done, 65000));
+      assert.equal(getState().resources.status, "paused");
+      report.idleMemory = {
+        mode: "Tray only, no RAM export, after 65 seconds idle",
+        workingSetMiB:
+          app
+            .getAppMetrics()
+            .reduce((sum, process) => sum + process.memory.workingSetSize, 0) /
+          1024,
+        privateMiB:
+          app
+            .getAppMetrics()
+            .reduce((sum, process) => sum + process.memory.privateBytes, 0) /
+          1024,
+      };
+      report.checks.push(
+        "Tray-only idle stops the RAM sampler and releases hidden renderers",
+      );
+    }
     report.metrics = getState().metrics;
     app.getAppMetrics();
     await new Promise((done) => setTimeout(done, 2000));
@@ -909,6 +988,16 @@ module.exports = async function smoke({
   } catch (error) {
     report.ok = false;
     report.error = error.stack;
+    const projectWindow = getProject()?.window;
+    if (projectWindow && !projectWindow.isDestroyed()) {
+      report.projectText = await projectWindow.webContents
+        .executeJavaScript("document.body.innerText.slice(-18000)")
+        .catch(() => null);
+      writeFileSync(
+        join(output, "project-failure.png"),
+        (await projectWindow.webContents.capturePage()).toPNG(),
+      );
+    }
     const dashboard = windows.get("dashboard");
     if (dashboard && !dashboard.isDestroyed()) {
       dashboard.show();

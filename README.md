@@ -94,6 +94,13 @@ never move state - only a human action promotes advice into anything.
 with real durations: subagent tasks, failing commands, and human-wait spans
 (dashed, width-capped) at a glance.
 
+**Session diagnostics** explain slow turns, repeated calls and errors, inactivity,
+and possible loops with links to the affected turns. Expand a tool span to inspect
+its timing, status, argument summary and call ID. Detection accounts for recorded
+human-wait signals. Findings are heuristics, not changes
+to a session's execution state. `ocelin inspect <transcript.jsonl> --provider codex`
+prints the same diagnostics; add `--json` for trace data.
+
 **Burn rate & forecast** - $/hour from statusline cost deltas, 5h/7d
 depletion slopes with ETA, per-model token history over 7d/30d/all-time
 windows. Estimates are labelled as estimates; unknowns stay unknown.

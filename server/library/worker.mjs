@@ -4,6 +4,9 @@ import { SessionLibrary } from "./catalog.mjs";
 const port = process.parentPort || parentPort;
 const library = new SessionLibrary({
   dataDir: process.env.OCELIN_DATA_DIR,
+  ...(process.env.OCELIN_SMOKE_TEST === "1"
+    ? { desktopRoot: null, codexLogRoot: null }
+    : {}),
   profiles: process.env.OCELIN_ACCOUNT_PROFILES
     ? JSON.parse(process.env.OCELIN_ACCOUNT_PROFILES)
     : [],

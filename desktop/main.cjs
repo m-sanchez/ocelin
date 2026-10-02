@@ -28,6 +28,7 @@ const { Worker } = require("node:worker_threads");
 const { Preferences, recoverBounds } = require("./lib/preferences.cjs");
 const { panelBounds, panelDuration } = require("./lib/panel.cjs");
 const { Resources } = require("./lib/resources.cjs");
+const { Updates } = require("./lib/updates.cjs");
 const {
   TaskbarBridge,
   taskbarSummary,
@@ -81,6 +82,7 @@ const sources = () =>
         : null),
     preferences.value.accountProfiles,
   );
+const { sourceKind } = require(join(core, "server/monitor/source-path.cjs"));
 const taskbarBridge = new TaskbarBridge(dataDir);
 const nativeTasks = new NativeTasks(
   dataDir,
@@ -92,6 +94,7 @@ const nativeTasks = new NativeTasks(
   () => publish(),
 );
 let library,
+  libraryIdleTimer,
   librarySequence = 0,
   hiddenKeys = new Set(),
   connections = {};
@@ -112,6 +115,20 @@ let snapshot = {
 };
 let error = null;
 const resources = new Resources(() => publish());
+let updatePublisher = null;
+try {
+  updatePublisher = JSON.parse(
+    readFileSync(join(__dirname, "assets/update-policy.json"), "utf8"),
+  ).publisher;
+} catch {}
+const updates = new Updates({
+  updater:
+    app.isPackaged && !smokeTest && updatePublisher
+      ? require("electron-updater").autoUpdater
+      : null,
+  publisher: app.isPackaged && !smokeTest ? updatePublisher : null,
+  onChange: () => publish(),
+});
 const processStops = new ProcessStops({
   sample: () => resources.value,
   sessions: () => snapshot.sessions,
@@ -132,6 +149,7 @@ const state = () => {
     version: app.getVersion(),
     packaged: app.isPackaged,
     resources: resources.value,
+    updates: updates.value,
     taskbarTheme: nativeTheme.shouldUseDarkColorsForSystemIntegratedUI
       ? "dark"
       : "light",
@@ -144,6 +162,19 @@ const state = () => {
   return { ...value, statusSummary: taskbarSummary(value, true) };
 };
 function publish() {
+  const needsResources =
+    !quitting &&
+    ([...windows.values()].some(
+      (window) => !window.isDestroyed() && window.isVisible(),
+    ) ||
+      (project?.window &&
+        !project.window.isDestroyed() &&
+        project.window.isVisible()) ||
+      (preferences.value.taskbarBridge &&
+        preferences.value.taskbarDetail === "memory") ||
+      preferences.value.nativeTasks);
+  if (needsResources) resources.start();
+  else if (resources.active) resources.stop();
   taskbarBridge.publish(state(), preferences.value.taskbarBridge);
   nativeTasks.publish(state(), preferences.value.nativeTasks);
   library?.postMessage({ type: "snapshot", sessions: snapshot.sessions });
@@ -164,6 +195,7 @@ function publish() {
   }
 }
 function libraryRequest(type, args = {}) {
+  clearTimeout(libraryIdleTimer);
   if (!library) {
     library = backgroundWorker(join(core, "server", "library", "worker.mjs"), {
       env: {
@@ -185,6 +217,14 @@ function libraryRequest(type, args = {}) {
       message.error
         ? pending.reject(new Error(message.error))
         : pending.resolve(message.value);
+      if (!libraryRequests.size) {
+        const current = library;
+        libraryIdleTimer = setTimeout(() => {
+          if (library === current && !libraryRequests.size)
+            library?.postMessage({ type: "stop" });
+        }, 60000);
+        libraryIdleTimer.unref();
+      }
     });
     library.on("exit", () => {
       library = null;
@@ -278,7 +318,7 @@ async function refreshConnections() {
     connections[provider] = {
       nativeOpen: Boolean(
         installed[provider] ||
-        app.getApplicationNameForProtocol(`${provider}://`),
+          app.getApplicationNameForProtocol(`${provider}://`),
       ),
       hooksInstalled: owned.some((command) => configured.includes(command)),
       lastHookAt:
@@ -764,6 +804,16 @@ function trusted(event) {
   );
 }
 async function action(name, args = {}) {
+  if (name === "update-check") return updates.check();
+  if (name === "update-download") return updates.download();
+  if (name === "update-install") {
+    updates.install();
+    return true;
+  }
+  if (name === "update-releases") {
+    await shell.openExternal("https://github.com/m-sanchez/ocelin/releases");
+    return true;
+  }
   if (
     name === "doctor-report" ||
     name === "doctor-tidy" ||
@@ -920,9 +970,12 @@ async function action(name, args = {}) {
     return true;
   }
   if (name === "preferences") {
+    const previousUpdates = preferences.value.automaticUpdates;
     const previousStartup = preferences.value.startup;
     const previousNative = preferences.value.nativeTasks;
     preferences.update(args);
+    if (previousUpdates !== preferences.value.automaticUpdates)
+      updates.configure(preferences.value.automaticUpdates);
     if (!previousNative && preferences.value.nativeTasks)
       nativeTasks.lastLaunch = 0;
     if (preferences.value.startup !== previousStartup) {
@@ -1014,10 +1067,16 @@ async function action(name, args = {}) {
     );
     const sources = preferences.value.sources || defaultSources();
     const root = await realpath(result.filePaths[0]);
-    if (/^[/\\]{2}/.test(root))
-      throw new Error("Only local Windows source folders are supported");
+    if (!sourceKind(root))
+      throw new Error(
+        "Choose a local or WSL source folder. Mirror remote transcripts locally first.",
+      );
     if (!sources.some((s) => s.provider === args.provider && s.root === root))
-      sources.push({ provider: args.provider, root });
+      sources.push({
+        provider: args.provider,
+        root,
+        kind: args.mirror === true ? "mirror" : sourceKind(root),
+      });
     preferences.save({ sources });
     await request("sources", {
       value: profileSources(sources, preferences.value.accountProfiles),
@@ -1112,6 +1171,7 @@ else {
   app.on("before-quit", () => {
     quitting = true;
     resources.stop();
+    updates.stop();
     globalShortcut.unregisterAll();
     taskbarBridge.publish(state(), false);
     nativeTasks.publish(state(), false);
@@ -1222,6 +1282,7 @@ else {
       });
       startMonitor();
       resources.start();
+      updates.configure(preferences.value.automaticUpdates);
       applySurfaces({
         panelLaunch: process.argv.some(
           (value) => activation(value)?.type === "panel",

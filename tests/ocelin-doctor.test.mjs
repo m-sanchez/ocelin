@@ -34,18 +34,18 @@ const quota = (left, patch = {}) => ({
   ...patch,
 });
 
-test("taskbar prioritizes counts and separate allowance, never sums or exports identity", () => {
+test("taskbar averages identified accounts without exporting identity", () => {
   const state = {
     counts: { running: 4, attention: 1 },
     subscriptions: {
-      codex: quota(18),
+      codex: quota(18, { accountKey: "codex:personal" }),
       claude: quota(72),
-      profiles: [quota(9)],
+      profiles: [quota(9, { accountKey: "codex:work" })],
     },
   };
   const summary = taskbarSummary(state, true, now);
   assert.equal(summary.headline, "4 running · 1 need you");
-  assert.equal(summary.detail, "Codex 9% · Claude 72%");
+  assert.equal(summary.detail, "Codex 13.5% avg · Claude 72%");
   assert.ok(!JSON.stringify(summary).includes("PRIVATE"));
   assert.equal(
     taskbarSummary(state, false, now).allowance.codex.remainingPercent,
@@ -62,7 +62,7 @@ test("taskbar prioritizes counts and separate allowance, never sums or exports i
   state.subscriptions.profiles[0].sampledAt = now - 300001;
   assert.equal(
     taskbarSummary(state, true, now).detail,
-    "Codex 18%* · Claude 72%",
+    "Codex 18% avg* · Claude 72%",
   );
   state.preferences = { taskbarAllowance: "five-hour" };
   assert.equal(

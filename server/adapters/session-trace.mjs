@@ -25,6 +25,8 @@ import {
 import { basename, dirname, join } from "node:path";
 import { summarizeTool } from "./session-feed.mjs";
 import { normalizeCodexRecords, parseJsonLines } from "./codex-transcript.mjs";
+import { createHash } from "node:crypto";
+import { diagnoseTrace } from "../core/trace-diagnostics.mjs";
 
 const CHUNK_BYTES = 512 * 1024;
 const DEFAULT_TAIL_BYTES = 4 * 1024 * 1024;
@@ -32,7 +34,12 @@ const DEFAULT_MAX_TURNS = 20;
 const MAX_SPANS_PER_TURN = 80;
 const MAX_SUBAGENT_META = 40;
 const SUBAGENT_META_MAX_BYTES = 4096;
-const WAIT_TOOLS = new Set(["ExitPlanMode", "AskUserQuestion", "request_user_input", "request_user_input_async"]);
+const WAIT_TOOLS = new Set([
+  "ExitPlanMode",
+  "AskUserQuestion",
+  "request_user_input",
+  "request_user_input_async",
+]);
 const TASK_TOOLS = new Set(["Task", "Agent", "spawn_agent"]);
 const END_TURN_NEEDLE = '"stop_reason":"end_turn"';
 
@@ -150,7 +157,8 @@ export function getSessionTrace(transcriptPath, opts = {}) {
   const lines = text.split(/\r?\n/);
   if (!atStart) lines.shift(); // partial first record when tailing mid-file
   const parsed = parseJsonLines(lines.join("\n"));
-  const normalized = opts.provider === "codex" ? normalizeCodexRecords(parsed) : parsed;
+  const normalized =
+    opts.provider === "codex" ? normalizeCodexRecords(parsed) : parsed;
 
   // Parse: keep only timestamped user/assistant records, preserving sequence.
   const records = [];
@@ -173,7 +181,8 @@ export function getSessionTrace(transcriptPath, opts = {}) {
   const usable = firstPrompt === -1 ? records : records.slice(firstPrompt);
   if (firstPrompt > 0 && !atStart) truncated = true;
 
-  const agents = opts.provider === "codex" ? new Map() : readSubagentMeta(transcriptPath);
+  const agents =
+    opts.provider === "codex" ? new Map() : readSubagentMeta(transcriptPath);
   const toolById = new Map();
   const turns = [];
   let current = null;
@@ -190,6 +199,9 @@ export function getSessionTrace(transcriptPath, opts = {}) {
     if (current._spanCount > MAX_SPANS_PER_TURN)
       current.spansDropped = current._spanCount - MAX_SPANS_PER_TURN;
     current.usage = current._usage;
+    current.lastActivityAt = new Date(
+      current._lastTs ?? current._startMs,
+    ).toISOString();
     delete current._startMs;
     delete current._usage;
     delete current._usageSeen;
@@ -253,6 +265,7 @@ export function getSessionTrace(transcriptPath, opts = {}) {
           current._spanCount++;
           if (current.spans.length >= MAX_SPANS_PER_TURN) continue;
           const span = {
+            id: b.id || `${current.index}:${current.spans.length}`,
             tool: b.name || "tool",
             summary: summarizeTool(b.name, b.input),
             startTs: new Date(ts).toISOString(),
@@ -280,6 +293,12 @@ export function getSessionTrace(transcriptPath, opts = {}) {
         if (!span) continue;
         span.durMs = Math.max(0, ts - span._startMs);
         span.ok = !b.is_error;
+        span.endTs = new Date(ts).toISOString();
+        if (b.is_error)
+          span.errorSignature = createHash("sha256")
+            .update(JSON.stringify(b.content ?? ""))
+            .digest("hex")
+            .slice(0, 20);
       }
     }
   }
@@ -309,5 +328,6 @@ export function getSessionTrace(transcriptPath, opts = {}) {
   const kept = turns.slice(-maxTurns);
   if (kept.length < turns.length) truncated = true;
   kept.forEach((t, i) => (t.index = i));
-  return { session, model, turns: kept, truncated, caps };
+  const trace = { session, model, turns: kept, truncated, caps };
+  return { ...trace, diagnostics: diagnoseTrace(trace, { now, sessionLive }) };
 }

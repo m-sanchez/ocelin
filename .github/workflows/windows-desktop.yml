@@ -1,6 +1,11 @@
 name: Windows desktop
 on:
   workflow_dispatch:
+    inputs:
+      signed:
+        description: Require a signed build using configured signing secrets
+        type: boolean
+        default: false
   pull_request:
     paths: ['desktop/**', 'server/**', 'ui/**', 'hooks/**', 'package.json', 'scripts/verify-windows-branding.cjs', 'scripts/check-window-icons.ps1', '.github/workflows/windows-desktop.yml']
   push:
@@ -23,6 +28,11 @@ jobs:
         working-directory: desktop
       - run: npm run dist
         working-directory: desktop
+        env:
+          OCELIN_SIGNING_PUBLISHER: ${{ inputs.signed && vars.OCELIN_SIGNING_PUBLISHER || '' }}
+          CSC_LINK: ${{ inputs.signed && secrets.WINDOWS_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ inputs.signed && secrets.WINDOWS_CSC_KEY_PASSWORD || '' }}
+          OCELIN_REQUIRE_SIGNING: ${{ inputs.signed && '1' || '0' }}
       - name: Verify Windows executable and installer branding
         run: node scripts/verify-windows-branding.cjs
       - name: Packaged smoke check with isolated source fixtures
@@ -44,4 +54,6 @@ jobs:
           name: Ocelin-Windows-x64-preview
           path: |
             desktop/dist/*setup.exe
+            desktop/dist/*.blockmap
+            desktop/dist/*.yml
             .ocelin-smoke/*/data/proof/*

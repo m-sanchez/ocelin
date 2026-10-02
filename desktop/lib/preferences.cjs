@@ -25,6 +25,7 @@ const defaults = {
   completions: false,
   sound: false,
   startup: false,
+  automaticUpdates: false,
   mutedProviders: [],
   mutedProjects: [],
   sources: null,
@@ -46,6 +47,7 @@ function validate(input, previous = defaults) {
     "startup",
     "taskbarBridge",
     "nativeTasks",
+    "automaticUpdates",
   ])
     if (typeof input[key] === "boolean") next[key] = input[key];
   for (const [key, values] of Object.entries({

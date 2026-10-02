@@ -140,6 +140,9 @@ export type WorkflowEvent =
  * elsewhere, with the runtime builder (`lib/snapshot.mjs`) as the detail source.
  */
 export interface TraceSpan {
+  id: string;
+  endTs?: string;
+  errorSignature?: string;
   tool: string;
   summary: string;
   startTs: string;
@@ -159,6 +162,7 @@ export interface TraceSpan {
 export interface TraceTurn {
   index: number;
   startTs: string;
+  lastActivityAt?: string;
   endTs: string | null;
   open: boolean;
   durMs: number | null;
@@ -177,6 +181,32 @@ export interface TraceTurn {
 }
 
 export interface SessionTrace {
+  diagnostics?: {
+    findings: Array<{
+      id: string;
+      type:
+        | "long_running"
+        | "no_activity"
+        | "repeated_tool"
+        | "repeated_error"
+        | "possible_loop";
+      severity: string;
+      message: string;
+      turn: number;
+      startTs: string;
+      spanIds: string[];
+      evidence: Array<
+        Pick<TraceSpan, "id" | "tool" | "startTs" | "durMs" | "ok">
+      >;
+    }>;
+    errors: Array<{
+      tool: string;
+      count: number;
+      occurrences: Array<{ turn: number; spanId: string; startTs: string }>;
+    }>;
+    partial: boolean;
+    thresholds: Record<string, number>;
+  };
   session: string;
   missing?: true;
   model: string | null;
@@ -204,6 +234,7 @@ export interface SubscriptionAllowance {
   profileId?: string | null;
   profileLabel?: string | null;
   accountLabel?: string | null;
+  accountKey?: string | null;
   windows: Array<{
     id: string;
     label: string;
@@ -213,6 +244,31 @@ export interface SubscriptionAllowance {
     extra: boolean;
   }>;
 }
+
+export interface SubscriptionTotal {
+  remainingPercent: number | null;
+  incomplete: boolean;
+  accountCount: number;
+  availableCount: number;
+}
+
+export type SubscriptionSnapshot = Record<
+  "codex" | "claude",
+  SubscriptionAllowance
+> & {
+  profiles?: SubscriptionAllowance[];
+  totalsAt?: number;
+  totals?: Record<
+    "lowest" | "weekly" | "five-hour",
+    Record<"codex" | "claude", SubscriptionTotal>
+  >;
+  observedAccounts?: Array<{
+    key: string;
+    provider: "codex" | "claude";
+    label: string;
+    clients: string[];
+  }>;
+};
 
 export interface PanelSnapshot {
   checkout: { id: string; root: string; branch?: string; isWorktree: boolean };
@@ -254,7 +310,7 @@ export interface PanelSnapshot {
    * Missing data is `unknown`, never zero.
    */
   quotaPressure: QuotaPressure;
-  subscriptions: (Record<"codex" | "claude", SubscriptionAllowance> & { profiles?: SubscriptionAllowance[] }) | null;
+  subscriptions: SubscriptionSnapshot | null;
   remoteBranches: unknown[];
   recentCommits: unknown[];
   commitActivity: unknown[];

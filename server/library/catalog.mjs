@@ -18,6 +18,16 @@ import {
 } from "../adapters/codex-transcript.mjs";
 import { getSessionFeed } from "../adapters/session-feed.mjs";
 import { CodexClient } from "./codex-client.mjs";
+import { searchTranscript } from "./search.mjs";
+import { getSessionTrace } from "../adapters/session-trace.mjs";
+import { diagnoseTrace } from "../core/trace-diagnostics.mjs";
+import sourcePaths from "../monitor/source-path.cjs";
+import {
+  recordIdentity,
+  mergeIdentity,
+  claudeDesktopIdentity,
+} from "../monitor/identity.mjs";
+import { CodexDesktopIdentity } from "../monitor/desktop-identity.mjs";
 import profilesModule from "../monitor/profiles.cjs";
 const { accountProfiles, sessionProfiles } = profilesModule;
 
@@ -103,6 +113,9 @@ function metadata(records, provider, file) {
       request.split("\n")[0].slice(0, 140) || `Session ${id.slice(0, 8)}`,
     request,
     historyMode: meta?.history_mode || "legacy",
+    identity: mergeIdentity(
+      ...records.map((record) => recordIdentity(provider, record)),
+    ),
     parentId:
       meta?.parent_thread_id ||
       meta?.source?.subagent?.thread_spawn?.parent_thread_id ||
@@ -120,9 +133,11 @@ export class SessionLibrary {
     now = Date.now,
     client = new CodexClient(),
     profiles = [],
+    codexLogRoot,
   } = {}) {
     Object.assign(this, { dataDir, sources, desktopRoot, now, client });
     this.profiles = accountProfiles(profiles);
+    this.codexIdentity = new CodexDesktopIdentity(codexLogRoot);
     this.entries = new Map();
     this.hidden = {};
     this.plans = new Map();
@@ -145,7 +160,7 @@ export class SessionLibrary {
                   ["codex", "claude"].includes(e.provider) &&
                   safeId(e.sessionId) &&
                   e.key === sessionKey(e.provider, e.sessionId) &&
-                  localPath(e.file) &&
+                  sourcePaths.sourceKind(e.file) &&
                   typeof e.displayTitle === "string" &&
                   typeof e.request === "string" &&
                   typeof e.cwd === "string" &&
@@ -269,7 +284,7 @@ export class SessionLibrary {
     for (const source of sources) {
       try {
         const root = await realpath(source.root);
-        if (!localPath(root)) continue;
+        if (!sourcePaths.sourceKind(root)) continue;
         const files = await walk(root, ".jsonl");
         diagnostics.push({
           provider: source.provider,
@@ -295,6 +310,18 @@ export class SessionLibrary {
                         file,
                       );
                 if (!entry) return;
+                if (!entry.identity) {
+                  entry.identity =
+                    cached?.identity &&
+                    cached.mtime === info.mtimeMs &&
+                    cached.bytes === info.size
+                      ? cached.identity
+                      : mergeIdentity(
+                          ...(await head(file, info.size)).map((record) =>
+                            recordIdentity(source.provider, record),
+                          ),
+                        );
+                }
                 if (entry.cwd && !workspaces.has(entry.cwd))
                   workspaces.set(
                     entry.cwd,
@@ -303,19 +330,40 @@ export class SessionLibrary {
                       .catch(() => false),
                   );
                 Object.assign(entry, {
+                  sourceKind:
+                    source.kind === "mirror"
+                      ? "mirror"
+                      : sourcePaths.sourceKind(root),
+                  readOnlySource:
+                    source.kind === "mirror" ||
+                    sourcePaths.sourceKind(root) !== "local",
                   file,
                   root,
                   mtime: info.mtimeMs,
                   lastTs: Math.max(info.mtimeMs, entry.nativeUpdatedAt || 0),
                   bytes: info.size,
                   nativeArchived: Boolean(source.archived),
-                  workspaceExists: entry.cwd
-                    ? await workspaces.get(entry.cwd)
-                    : false,
+                  workspaceExists:
+                    !entry.readOnlySource &&
+                    source.kind !== "mirror" &&
+                    sourcePaths.sourceKind(root) === "local" &&
+                    entry.cwd
+                      ? await workspaces.get(entry.cwd)
+                      : false,
                 });
                 const existing = next.get(entry.key);
+                entry.readOnlySource ||= Boolean(existing?.readOnlySource);
+                entry.identity = mergeIdentity(
+                  cached?.key === entry.key ? cached.identity : null,
+                  existing?.identity,
+                  entry.identity,
+                );
                 if (!existing || entry.mtime > existing.mtime)
                   next.set(entry.key, entry);
+                else {
+                  existing.identity = entry.identity;
+                  existing.readOnlySource ||= entry.readOnlySource;
+                }
               } catch {}
             }),
           );
@@ -356,10 +404,21 @@ export class SessionLibrary {
                 entry.displayTitle = text(meta.title).slice(0, 160);
               entry.desktopId = safeId(meta.sessionId) ? meta.sessionId : null;
               entry.nativeArchived = meta.isArchived === true;
+              entry.identity = mergeIdentity(
+                entry.identity,
+                claudeDesktopIdentity(this.desktopRoot, file, meta),
+              );
             }
           } catch {}
         }
       } catch {}
+    }
+    const identities = [...next.values()].some((e) => e.provider === "codex")
+      ? await this.codexIdentity.read()
+      : [];
+    for (const [id, identity] of identities) {
+      const entry = next.get(sessionKey("codex", id));
+      if (entry) entry.identity = mergeIdentity(entry.identity, identity);
     }
     this.entries = next;
     this.byFile = new Map([...next.values()].map((e) => [e.file, e]));
@@ -376,6 +435,7 @@ export class SessionLibrary {
     const live = this.live.get(entry.key);
     return {
       ...value,
+      identity: mergeIdentity(live?.identity, entry.identity),
       profiles: sessionProfiles(
         { ...entry, sourceRoots: [root] },
         this.profiles,
@@ -406,14 +466,17 @@ export class SessionLibrary {
     olderDays = 0,
     missingWorkspace = false,
     refresh = false,
+    fullText = false,
+    continueSearch = false,
   } = {}) {
-    await this.refresh(refresh);
+    if (!continueSearch || !this.searchCache || refresh)
+      await this.refresh(refresh);
     const terms = text(search)
       .toLowerCase()
       .trim()
       .split(/\s+/)
       .filter(Boolean);
-    const records = [...this.entries.values()]
+    let records = [...this.entries.values()]
       .filter((e) => {
         if (provider !== "all" && e.provider !== provider) return false;
         if (
@@ -429,10 +492,49 @@ export class SessionLibrary {
           return false;
         if (missingWorkspace && e.workspaceExists) return false;
         const haystack =
-          `${e.displayTitle} ${e.request} ${e.cwd} ${e.sessionId} ${e.provider}`.toLowerCase();
-        return terms.every((t) => haystack.includes(t));
+          `${e.displayTitle} ${e.request} ${e.cwd} ${e.sessionId} ${e.provider} ${JSON.stringify(mergeIdentity(this.live.get(e.key)?.identity, e.identity))}`.toLowerCase();
+        return fullText || terms.every((t) => haystack.includes(t));
       })
       .sort((a, b) => b.lastTs - a.lastTs || a.key.localeCompare(b.key));
+    let searchProgress;
+    if (fullText && terms.length) {
+      const key = JSON.stringify([
+        this.generation,
+        terms,
+        provider,
+        view,
+        olderDays,
+        missingWorkspace,
+      ]);
+      if (this.searchCache?.key !== key)
+        this.searchCache = { key, position: 0, matches: [], partial: 0 };
+      const cache = this.searchCache;
+      if (!cache.position || continueSearch) {
+        const deadline = Date.now() + 8000;
+        while (cache.position < records.length && Date.now() < deadline) {
+          const entry = records[cache.position++];
+          const metadata =
+            `${entry.displayTitle} ${entry.request} ${entry.cwd} ${entry.sessionId} ${entry.provider} ${JSON.stringify(entry.identity)}`.toLowerCase();
+          const remaining = terms.filter((term) => !metadata.includes(term));
+          try {
+            const result = remaining.length
+              ? await searchTranscript(entry, remaining, { deadline })
+              : { matched: true };
+            if (result.matched) cache.matches.push(entry);
+            else if (result.partial) cache.partial++;
+          } catch {
+            cache.partial++;
+          }
+        }
+      }
+      searchProgress = {
+        scanned: cache.position,
+        total: records.length,
+        partial: cache.partial,
+        more: cache.position < records.length,
+      };
+      records = cache.matches;
+    }
     const start = Number.isSafeInteger(offset) ? Math.max(0, offset) : 0;
     const count = Number.isSafeInteger(limit)
       ? Math.min(100, Math.max(1, limit))
@@ -444,7 +546,10 @@ export class SessionLibrary {
       generation: this.generation,
       indexed: this.entries.size,
       diagnostics: this.diagnostics,
-      searchScope: "Titles, first requests, projects and IDs",
+      searchProgress,
+      searchScope: fullText
+        ? "Conversation messages and tool results, plus titles, projects, accounts and IDs"
+        : "Titles, first requests, projects, accounts and IDs",
     };
   }
   async resolve(key, hint) {
@@ -470,6 +575,11 @@ export class SessionLibrary {
         const known = this.entries.get(key) || this.byFile?.get(file);
         return {
           ...entry,
+          readOnlySource:
+            source.kind === "mirror" ||
+            sourcePaths.sourceKind(root) !== "local",
+          sourceKind:
+            source.kind === "mirror" ? "mirror" : sourcePaths.sourceKind(root),
           displayTitle: text(hint.displayTitle) || entry.displayTitle,
           file,
           root,
@@ -519,7 +629,22 @@ export class SessionLibrary {
       branch: feed.branch,
       bounded: true,
     };
-    if (entry.provider === "codex" && this.client.executable) {
+    const live = this.live.get(key);
+    const trace = getSessionTrace(entry.file, {
+      provider: entry.provider,
+      sessionLive: live?.execution === "running" && !live.stale,
+      now: this.now(),
+    });
+    result.diagnostics = diagnoseTrace(trace, {
+      now: this.now(),
+      sessionLive: live?.execution === "running" && !live.stale,
+      waiting: Boolean(live?.attention),
+    });
+    if (
+      entry.provider === "codex" &&
+      !entry.readOnlySource &&
+      this.client.executable
+    ) {
       try {
         const read = await this.client.call("thread/read", {
           threadId: entry.sessionId,
@@ -788,6 +913,10 @@ export class SessionLibrary {
     const selected = new Set(keys);
     if (native)
       for (const entry of entries) {
+        if (entry.readOnlySource)
+          throw new Error(
+            "Manage archives on the original host. This source is read-only.",
+          );
         if (entry.provider !== "codex")
           throw new Error(
             "Claude has no supported native archive API. Hide it in Ocelin or open Claude to manage it.",

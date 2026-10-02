@@ -3,6 +3,9 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 import { CodexClient } from "../library/codex-client.mjs";
 import profilesModule from "./profiles.cjs";
+import { accountKey } from "./identity.mjs";
+import { codexProfileIdentity } from "./credential-identity.mjs";
+import allowanceModule from "./allowance.cjs";
 const { accountProfiles } = profilesModule;
 
 export const SUBSCRIPTION_INTERVAL = 120000;
@@ -167,6 +170,13 @@ export async function readSubscriptionSnapshot(
         profileId: safeText(saved.profileId),
         profileLabel: safeText(saved.profileLabel),
         accountLabel: safeText(saved.accountLabel),
+        accountKey:
+          typeof saved.accountKey === "string" &&
+          /^(codex|claude):[a-zA-Z0-9_-]{1,128}(?::[a-zA-Z0-9_-]{1,128})?$/.test(
+            saved.accountKey,
+          )
+            ? saved.accountKey
+            : null,
         status: saved.status === "ready" ? "ready" : "unavailable",
         message: safeText(saved.message),
         plan: safeText(saved.plan),
@@ -190,7 +200,7 @@ export async function readSubscriptionSnapshot(
           })),
       };
     };
-    return {
+    const result = {
       ...Object.fromEntries(
         ["codex", "claude"].map((provider) => [
           provider,
@@ -201,6 +211,11 @@ export async function readSubscriptionSnapshot(
         .slice(0, 8)
         .filter((p) => ["codex", "claude"].includes(p?.provider))
         .map((p) => clean(p.provider, p)),
+    };
+    return {
+      ...result,
+      totals: allowanceModule.allowanceTotals(result),
+      totalsAt: allowanceModule.allowanceSampledAt(result),
     };
   } catch {
     return emptySubscriptions();
@@ -235,8 +250,11 @@ export class SubscriptionMonitor {
     this.generation = 0;
     this.value = emptySubscriptions();
   }
-  async codex(client = this.client) {
+  async codex(client = this.client, home, env = this.env) {
     try {
+      const localIdentity = !env.CODEX_ACCESS_TOKEN;
+      const identity =
+        localIdentity && home ? await codexProfileIdentity(home) : null;
       const before = await client.call("account/read", {
         refreshToken: false,
       });
@@ -251,9 +269,17 @@ export class SubscriptionMonitor {
       });
       if (JSON.stringify(before.account) !== JSON.stringify(after.account))
         return empty("codex", "Account changed. Checking again shortly.");
+      const current = identity ? await codexProfileIdentity(home) : null;
+      if (identity && current?.fingerprint !== identity.fingerprint)
+        return empty("codex", "Account changed. Checking again shortly.");
       return {
         ...codexSubscription(result, after.account, this.now()),
         accountLabel: safeText(after.account.email),
+        accountKey:
+          after.account.type === "chatgpt" &&
+          identity?.email === after.account.email
+            ? identity.key
+            : null,
       };
     } catch {
       return empty(
@@ -307,6 +333,7 @@ export class SubscriptionMonitor {
       const body = await response.text();
       if (body.length > 128 * 1024) throw new Error("Response too large");
       let accountLabel = null;
+      let identityKey = null;
       if (identify) {
         try {
           const profile = await this.fetcher(
@@ -324,8 +351,11 @@ export class SubscriptionMonitor {
           );
           if (profile.ok) {
             const text = await profile.text();
-            if (text.length <= 128 * 1024)
-              accountLabel = safeText(JSON.parse(text).account?.email);
+            if (text.length <= 128 * 1024) {
+              const account = JSON.parse(text).account;
+              accountLabel = safeText(account?.email);
+              identityKey = accountKey("claude", account?.uuid);
+            }
           }
         } catch {}
       }
@@ -339,6 +369,7 @@ export class SubscriptionMonitor {
           this.now(),
         ),
         accountLabel,
+        accountKey: identityKey,
       };
     } catch {
       return empty(
@@ -351,7 +382,8 @@ export class SubscriptionMonitor {
     let result;
     if (profile.provider === "claude")
       result = await this.claude(profile.home, true);
-    else if (profile.builtin) result = await this.codex();
+    else if (profile.builtin)
+      result = await this.codex(this.client, profile.home);
     else {
       const env = { ...this.env, CODEX_HOME: profile.home };
       for (const key of [
@@ -363,7 +395,7 @@ export class SubscriptionMonitor {
       const client = this.clientFactory(env);
       this.clients.add(client);
       try {
-        result = await this.codex(client);
+        result = await this.codex(client, profile.home, env);
       } finally {
         this.clients.delete(client);
       }

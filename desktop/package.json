@@ -1,7 +1,7 @@
 {
   "name": "ocelin-desktop",
   "productName": "Ocelin",
-  "version": "0.6.8",
+  "version": "0.7.0-preview.1",
   "description": "Ocelin: a local Windows companion for Codex and Claude",
   "private": true,
   "main": "main.cjs",
@@ -13,8 +13,8 @@
   "scripts": {
     "postinstall": "node node_modules/electron/install.js",
     "start": "electron .",
-    "pack": "node prepare.mjs && electron-builder --dir --win",
-    "dist": "node prepare.mjs && electron-builder --win nsis"
+    "pack": "node prepare.mjs && electron-builder --config electron-builder.config.cjs --dir --win --publish never",
+    "dist": "node prepare.mjs && electron-builder --config electron-builder.config.cjs --win nsis --publish never"
   },
   "devDependencies": {
     "electron": "44.4.1",
@@ -38,6 +38,7 @@
       "package.json"
     ],
     "asarUnpack": [
+      "lib/verify-update.ps1",
       "lib/resources.ps1",
       "lib/stop-processes.ps1"
     ],
@@ -95,5 +96,8 @@
       "installerHeaderIcon": "assets/ocelin.ico",
       "uninstallDisplayName": "Ocelin"
     }
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9"
   }
 }

@@ -9,6 +9,7 @@ import {
 } from "./session-model.mjs";
 import { icon, providerIcon } from "./icons.mjs";
 import { subscriptionView } from "../../ui/shared/subscriptions.mjs";
+import { sessionIdentityText } from "../../ui/shared/session-identity.mjs";
 import { initDoctor } from "./doctor.mjs";
 import {
   initLibrary,
@@ -16,6 +17,7 @@ import {
   libraryView,
   showLibrary,
   closePreview,
+  previewSession,
 } from "./library.mjs";
 const api = window.ocelin;
 const $ = (id) => document.getElementById(id);
@@ -177,6 +179,18 @@ if (surface === "tray") {
 }
 function render(value) {
   state = value;
+  $("update-status").textContent =
+    value.updates?.message || "Updates unavailable";
+  $("update-check").disabled = [
+    "unavailable",
+    "checking",
+    "downloading",
+    "ready",
+  ].includes(value.updates?.status);
+  $("update-download").hidden = value.updates?.status !== "available";
+  $("update-install").hidden = value.updates?.status !== "ready";
+  document.querySelector('[data-pref="automaticUpdates"]').disabled =
+    value.updates?.status === "unavailable";
   renderDoctor(value);
   $("taskbar-preview").textContent =
     `${value.statusSummary?.headline || ""} · ${value.statusSummary?.detail || ""}`;
@@ -269,10 +283,13 @@ function render(value) {
 let accountProfileKey = "";
 let workspaceKey = "";
 function renderWorkspaceLauncher(value) {
-  const projects = groupSessions(value.sessions, {
-    filter: "all",
-    historySince: 0,
-  }).filter((p) => p.sessions.some((s) => s.cwd));
+  const projects = groupSessions(
+    value.sessions.filter((s) => !s.readOnlySource),
+    {
+      filter: "all",
+      historySince: 0,
+    },
+  ).filter((p) => p.sessions.some((s) => s.cwd));
   const key = JSON.stringify([
     value.preferences.lastProjectPath,
     projects.map((p) => [p.key, p.title, p.sessions[0]?.key]),
@@ -310,6 +327,13 @@ function renderWorkspaceLauncher(value) {
     );
 }
 const accountProfileDrafts = new Map();
+for (const name of [
+  "update-check",
+  "update-download",
+  "update-install",
+  "update-releases",
+])
+  $(name).addEventListener("click", () => action(name));
 function renderAccountProfiles(value) {
   const readings = [
     value.subscriptions?.codex,
@@ -488,21 +512,37 @@ function sessionRow(s) {
   row.dataset.attention = String(Boolean(needsAttention(s)));
   const title = button(
     s.displayTitle || `Session ${s.sessionId.slice(0, 8)}`,
-    () => openSession(s, title),
+    () => (s.readOnlySource ? previewSession(s) : openSession(s, title)),
     "session-title",
   );
   title.dataset.focus = `open:${s.key}`;
+  if (s.readOnlySource) {
+    title.title =
+      "Read-only source. Open this conversation on its original host; hover here to preview.";
+  }
   title.setAttribute(
     "aria-label",
     `Open ${s.provider} session: ${s.displayTitle || s.title}`,
   );
   const label = node("div", "session-name");
   label.append(title);
+  const identity = node("span", "session-profile", sessionIdentityText(s));
+  identity.title =
+    "Clients and accounts found in saved session records; not necessarily the current sign-in.";
+  label.append(identity);
+  if (s.readOnlySource)
+    label.append(
+      node(
+        "span",
+        "session-profile",
+        `${s.sourceKind === "wsl" ? "WSL" : "Remote mirror"} · read-only`,
+      ),
+    );
   if (s.profiles?.length) {
     const profile = node(
       "span",
       "session-profile",
-      s.profiles.map((p) => p.label).join(" · "),
+      `Profile: ${s.profiles.map((p) => p.label).join(" · ")}`,
     );
     profile.title =
       "Source profile. The account that originally ran this conversation is not verified.";
@@ -538,22 +578,26 @@ function sessionRow(s) {
     ),
   );
   const actions = node("div", "buttons");
-  actions.append(button("Open folder", () => action("folder", { key: s.key })));
-  actions.append(
-    button("Project dashboard", () => action("project", { key: s.key })),
-  );
-  if (s.unseen)
+  if (!s.readOnlySource) {
     actions.append(
-      button("Mark seen", () => action("acknowledge", { key: s.key })),
+      button("Open folder", () => action("folder", { key: s.key })),
     );
-  actions.append(
-    button(
-      state.preferences.mutedProjects.includes(s.cwd)
-        ? "Unmute project"
-        : "Mute project",
-      () => action("mute-project", { key: s.key }),
-    ),
-  );
+    actions.append(
+      button("Project dashboard", () => action("project", { key: s.key })),
+    );
+    if (s.unseen)
+      actions.append(
+        button("Mark seen", () => action("acknowledge", { key: s.key })),
+      );
+    actions.append(
+      button(
+        state.preferences.mutedProjects.includes(s.cwd)
+          ? "Unmute project"
+          : "Mute project",
+        () => action("mute-project", { key: s.key }),
+      ),
+    );
+  }
   menu.append(actions);
   details.append(summary, menu);
   details.addEventListener("toggle", () => {
@@ -846,7 +890,10 @@ for (const provider of ["codex", "claude"])
   );
 for (const b of document.querySelectorAll("[data-source]"))
   b.addEventListener("click", () =>
-    action("source", { provider: b.dataset.source }),
+    action("source", {
+      provider: b.dataset.source,
+      mirror: b.dataset.mirror === "true",
+    }),
   );
 for (const b of document.querySelectorAll("[data-account-provider]"))
   b.addEventListener("click", async () => {

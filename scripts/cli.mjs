@@ -16,6 +16,7 @@ const SCRIPTS = {
   stop: "panel-stop.mjs",
   status: "panel-status.mjs",
   init: "init.mjs",
+  inspect: "inspect.mjs",
   "self-test": "self-test.mjs",
 };
 
@@ -30,6 +31,9 @@ if (!script) {
   console.log("  status     Show the panel's process/port state");
   console.log("  stop       Stop the panel for this checkout");
   console.log("  init       Install hooks + commands into a project");
+  console.log(
+    "  inspect    Inspect a transcript and explain diagnostic findings",
+  );
   console.log("  self-test  Verify this install can boot");
   console.log("\nCommon options: --checkout <dir> (which project to observe)");
   process.exit(command ? 1 : 0);

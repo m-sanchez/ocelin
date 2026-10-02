@@ -2,18 +2,30 @@ import { SessionMonitor } from "./collector.mjs";
 import { parentPort } from "node:worker_threads";
 import { SubscriptionMonitor } from "./subscriptions.mjs";
 import profilesModule from "./profiles.cjs";
+import { observedAccounts } from "./identity.mjs";
+import allowanceModule from "./allowance.cjs";
 const { accountProfiles, sessionProfiles } = profilesModule;
 let profiles = accountProfiles(
   process.env.OCELIN_ACCOUNT_PROFILES
     ? JSON.parse(process.env.OCELIN_ACCOUNT_PROFILES)
     : [],
 );
+const accountLabels = new Map();
 const sessionSnapshot = () => {
   const snapshot = monitor.snapshot();
   return {
     ...snapshot,
     sessions: snapshot.sessions.map((s) => ({
       ...s,
+      identity: s.identity
+        ? {
+            ...s.identity,
+            accounts: s.identity.accounts.map((a) => ({
+              ...a,
+              label: accountLabels.get(a.key) || a.label,
+            })),
+          }
+        : undefined,
       profiles: sessionProfiles(s, profiles),
     })),
   };
@@ -23,6 +35,9 @@ const port = process.parentPort || parentPort;
 
 const monitor = new SessionMonitor({
   dataDir: process.env.OCELIN_DATA_DIR,
+  ...(process.env.OCELIN_SMOKE_TEST === "1"
+    ? { desktopRoot: null, codexLogRoot: null }
+    : {}),
   sources: process.env.OCELIN_SOURCES
     ? JSON.parse(process.env.OCELIN_SOURCES)
     : undefined,
@@ -39,12 +54,31 @@ const subscriptions = new SubscriptionMonitor({
   dataDir: process.env.OCELIN_DATA_DIR,
   fixture: process.env.OCELIN_SMOKE_TEST === "1",
   profiles: profiles.filter((p) => !p.builtin),
-  onUpdate: () =>
+  onUpdate: () => {
+    for (const reading of [
+      subscriptions.value.codex,
+      subscriptions.value.claude,
+      ...(subscriptions.value.profiles || []),
+    ])
+      if (reading.accountKey && reading.accountLabel)
+        accountLabels.set(reading.accountKey, reading.accountLabel);
     send({
       type: "snapshot",
-      snapshot: { ...sessionSnapshot(), subscriptions: subscriptions.value },
-    }),
+      snapshot: { ...sessionSnapshot(), subscriptions: subscriptionSnapshot() },
+    });
+  },
 });
+const subscriptionSnapshot = () => {
+  const value = {
+    ...subscriptions.value,
+    observedAccounts: observedAccounts(sessionSnapshot().sessions),
+  };
+  return {
+    ...value,
+    totals: allowanceModule.allowanceTotals(value),
+    totalsAt: allowanceModule.allowanceSampledAt(value),
+  };
+};
 const enqueue = (fn) => {
   chain = chain
     .then(fn)
@@ -56,7 +90,7 @@ async function refresh(force = false) {
     type: "snapshot",
     snapshot: {
       ...sessionSnapshot(),
-      subscriptions: subscriptions.value,
+      subscriptions: subscriptionSnapshot(),
     },
   });
   for (const session of await monitor.notifications(preferences))
@@ -73,14 +107,14 @@ port.on("message", (raw) => {
       }
       if (data.type === "acknowledge") {
         await monitor.acknowledge(data.key);
-        value = { ...sessionSnapshot(), subscriptions: subscriptions.value };
+        value = { ...sessionSnapshot(), subscriptions: subscriptionSnapshot() };
         send({ type: "snapshot", snapshot: value });
       } else if (data.type === "target") value = monitor.target(data.key);
       else if (data.type === "refresh") {
         await refresh(true);
         value = true;
       } else if (data.type === "sources") {
-        monitor.sources = data.value;
+        monitor.setSources(data.value);
         await refresh(true);
         value = true;
       } else if (data.type === "profiles") {
