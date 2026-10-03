@@ -2,21 +2,31 @@
 
 # Ocelin
 
-Formerly Clawdeck. A local companion for **Codex and Claude Code**, with **Windows status, conversation previews, and a searchable session library**. Choose your desktop surfaces; they share one monitor.
+Ocelin, formerly Clawdeck, brings **Codex and Claude Code sessions into one local view**. Find active work, inspect recent messages, search saved conversations and reopen the relevant task. Use the browser dashboard for a project, or the optional Windows companion for desktop status.
 
-[Website](https://miguelsanchez.co.uk/ocelin/) · [Windows preview downloads](https://github.com/m-sanchez/ocelin/releases) · [Desktop setup and compatibility](docs/WINDOWS-DESKTOP.md)
+[Try the 0.6.8 Windows preview](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) · [Browser quickstart](#quickstart) · [Website](https://miguelsanchez.co.uk/ocelin/) · [Desktop compatibility](docs/WINDOWS-DESKTOP.md)
 
-The browser core keeps zero runtime dependencies. The optional Windows app includes everything it needs to run. The GitHub repository is now `m-sanchez/ocelin`; old repository links redirect here. The npm package and `clawdeck` command remain compatible; `ocelin` is an additional CLI alias.
+The Windows installers are unsigned previews with manual updates. Native shell features have additional Windows requirements. Local monitoring reads provider history on this computer; optional **Ask Ocelin** sends your question and a compact, secret-scanned state snapshot through Claude Code to its configured model service.
+
+## Release choices
+
+| Release | Use |
+| --- | --- |
+| [0.6.8](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) | The existing preview used by the quickstart below, with Windows installer and browser package. |
+| [0.7.0-preview.2](https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.2) | Experimental preview with simpler default views, display controls, diagnostics and transcript search. See the release notes and [preview limits](docs/WINDOWS-DESKTOP.md#validation-and-preview-limits). |
+| [`clawdeck-panel` on npm](https://www.npmjs.com/package/clawdeck-panel) | Earlier 0.3.0 Clawdeck browser package. It is separate from the GitHub preview downloads. |
+
+The browser core has zero runtime dependencies. The optional Windows app includes its runtime. GitHub preview packages provide both `ocelin` and `clawdeck` commands; the existing npm package keeps its `clawdeck` command. Old repository links redirect to `m-sanchez/ocelin`.
 
 ## Windows companion
 
-Download the x64 installer from Releases. Sign-in startup and lifecycle hooks are optional. The preview is unsigned; automatic updates are not enabled.
+Choose an x64 installer from the release table above. Sign-in startup and lifecycle hooks are optional. The following tour covers features across the previews; the linked release notes identify changes in each version.
 
 **Now** groups active sessions by project and shows measured app RAM. Hover a conversation to read its latest request and response; click to continue in the exact Codex or Claude task. **History** searches saved conversations, including those with missing project folders. Select old sessions to hide them in Ocelin, or archive/restore Codex sessions through its native API.
 
 **Subscription allowance** shows the percentage left for each reported Codex and Claude session, weekly and model-specific limit, with reset countdowns. The desktop refreshes signed-in provider readings every two minutes; the project Cost page uses the same local snapshot. Missing or expired readings stay unavailable. [Usage sources and account scope](docs/WINDOWS-DESKTOP.md#subscription-allowance).
 
-Connect additional signed-in local profiles in **Settings → Account profiles** for separate allowance cards and source labels on sessions. Use **Open workspace** at the top of the panel to return to the original project tools, or **Choose folder…** to open another project.
+Connect additional signed-in local profiles in **Settings > Account profiles** for separate allowance cards and source labels on sessions. Use **Open workspace** at the top of the panel to return to the original project tools, or **Choose folder…** to open another project.
 
 The taskbar puts **running sessions and subscription % left** first. Settings can switch its second line to per-app running counts or RAM, and choose weekly, five-hour or the lowest remaining limit. Percentages stay separate for Codex and Claude. **Doctor** in the panel tidies old inactive history with Undo, removes old Ocelin workspace caches, and offers explicit controls to stop a selected app and its tools or release Ocelin's workspace and history index.
 
@@ -109,9 +119,10 @@ The Cost page also shows subscription percentages and reset countdowns separatel
 
 ![Ocelin Cost page with sample Codex and Claude subscription allowances above separate spending estimates](docs/assets/cost.png)
 
-**Ask Ocelin** (Prompt hub) - ask questions about panel state, answered by
-a local `claude -p` child running tool-less in a sterile temp dir; the only
-context sent is a compact, secret-scanned snapshot summary.
+**Ask Ocelin** (Prompt hub) is optional. It sends your question and a compact,
+secret-scanned snapshot summary to the model service used by your Claude Code
+CLI. The local `claude -p` process runs without tools in a temporary directory;
+the model inference is not local. Session monitoring does not require Ask.
 
 Also in the box:
 
@@ -141,23 +152,23 @@ Principles:
 
 ## Quickstart
 
-The 0.6 preview browser package is attached to the GitHub release. The npm registry still carries the earlier Clawdeck release.
+This quickstart uses the **0.6.8 preview** browser package attached to its GitHub release and requires Node 20 or newer. Installing `clawdeck-panel` directly from npm instead gives the earlier 0.3.0 package. For the experimental 0.7 preview, use its separately labelled release assets.
 
 ```bash
 npm install --global https://github.com/m-sanchez/ocelin/releases/download/v0.6.8/clawdeck-panel-0.6.8.tgz
 ocelin run --checkout /path/to/your/project
 ```
 
-Or from a clone:
+Or clone the same preview source:
 
 ```bash
-git clone https://github.com/m-sanchez/ocelin.git
+git clone --branch v0.6.8 --depth 1 https://github.com/m-sanchez/ocelin.git
 cd ocelin
 node scripts/panel-run.mjs --checkout /path/to/your/project
 ```
 
 That alone gives you the git-level views (worktrees, diff, commits, MR draft)
-and session liveness from Claude Code and Codex's local transcript files — zero setup,
+and session liveness from Claude Code and Codex's local transcript files, with zero setup,
 nothing written to your project, one loopback server that stops when you
 close it.
 
