@@ -121,8 +121,8 @@ The Cost page also shows subscription percentages and reset countdowns separatel
 
 **Ask Ocelin** (Prompt hub) is optional. It sends your question and a compact,
 secret-scanned snapshot summary to the model service used by your Claude Code
-CLI. The local `claude -p` process runs without tools in a temporary directory;
-the model inference is not local. Session monitoring does not require Ask.
+CLI. The local `claude -p` process runs without tools in a temporary directory.
+Expect a model-service request when using Ask; session monitoring does not require it.
 
 Also in the box:
 
