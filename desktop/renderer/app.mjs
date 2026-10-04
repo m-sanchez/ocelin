@@ -11,6 +11,7 @@ import { icon, providerIcon } from "./icons.mjs";
 import { subscriptionView } from "../../ui/shared/subscriptions.mjs";
 import { sessionIdentityText } from "../../ui/shared/session-identity.mjs";
 import { initDoctor } from "./doctor.mjs";
+import { initFirstReturn } from "./first-return.mjs";
 import {
   initLibrary,
   attachPreview,
@@ -179,6 +180,7 @@ if (surface === "tray") {
 }
 function render(value) {
   state = value;
+  renderFirstReturn(value);
   const display = value.preferences;
   $("counts").hidden = !display.showSummary;
   $("subscriptions").hidden = !display.showAllowances;
@@ -991,6 +993,12 @@ $("hook-apply").addEventListener("click", async () => {
 motionQuery.addEventListener("change", motion);
 document.addEventListener("visibilitychange", motion);
 initLibrary(action, renderSessions);
+const renderFirstReturn = initFirstReturn({
+  action,
+  preview: previewSession,
+  browse: () => showLibrary("history"),
+  settings: () => $("preferences").showModal(),
+});
 const renderDoctor = initDoctor(
   api.action,
   () => state,

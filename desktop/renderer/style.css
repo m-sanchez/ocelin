@@ -16,6 +16,35 @@
   background: var(--bg);
   color: var(--text);
 }
+.first-return {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+.return-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.return-heading h2 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+.first-return p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.first-return .buttons {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+body[data-surface="bar"] .first-return {
+  display: none;
+}
 .doctor-dialog {
   width: min(540px, calc(100vw - 24px));
   max-height: calc(100vh - 36px);
@@ -806,8 +835,13 @@ dialog header {
   padding: 16px 0;
   font-weight: 600;
 }
-.settings-section > summary::after { content: "+"; float: right; }
-.settings-section[open] > summary::after { content: "−"; }
+.settings-section > summary::after {
+  content: "+";
+  float: right;
+}
+.settings-section[open] > summary::after {
+  content: "−";
+}
 .settings-section fieldset {
   border: 0;
   padding-top: 0;

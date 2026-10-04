@@ -1,16 +1,24 @@
 {
-  "version": "0.7.0-preview.2",
+  "version": "0.7.0-preview.3",
   "captured": "2026-10-04",
   "command": "node scripts/desktop-smoke.mjs --panel-launch",
   "data": "Sample conversations, accounts and allowances; memory readings from the capture machine.",
   "assets": [
+    {
+      "source": "first-return.png",
+      "repository": "ocelin-first-return.png",
+      "website": "first-return.png",
+      "width": 1183,
+      "height": 729,
+      "sha256": "c9f6f90d7cfe320fad69090ec9846cfd59714f451c7e81996dcf561483aed984"
+    },
     {
       "source": "simple-dashboard.png",
       "repository": "ocelin-desktop.png",
       "website": "desktop.png",
       "width": 1183,
       "height": 729,
-      "sha256": "0167ff05be3701943b83bc2555299689c0433cb67f4006ca2f6536af770ec785"
+      "sha256": "5a871abe16d4b0a31c669ae833092aba00ce51c0b57ce6f6e8006caed43794ad"
     },
     {
       "source": "simple-panel.png",
@@ -18,7 +26,7 @@
       "website": "session-panel.png",
       "width": 440,
       "height": 1376,
-      "sha256": "614b0f2d619e413f67ddaccbaef08cb3e29c6dc6e840f2f3f2c4c2fd99d0cf4b"
+      "sha256": "a2162910e60148333fed69d3bf8d0df4afbbf8c7141d1d02ff296688dd30f654"
     },
     {
       "source": "display-settings.png",
@@ -26,7 +34,7 @@
       "website": "display-settings.png",
       "width": 1383,
       "height": 954,
-      "sha256": "640509f280660667280bd7430191c905da3f528673f3996319174bfb48258842"
+      "sha256": "63f9f9965d066e3710996c37dd95a96b37d1ef353d5a2c45334d0a39950634b2"
     },
     {
       "source": "doctor-panel.png",
@@ -34,7 +42,7 @@
       "website": "doctor-panel.png",
       "width": 440,
       "height": 1376,
-      "sha256": "e4da597c659ab98125741bd1175b93a9707429111d06332b0731543f199efb97"
+      "sha256": "38b981c9bfadff86c28302490ced4a8ec3d3ac3e112a7fa5e2f4f5cf7f24793c"
     },
     {
       "source": "history-preview.png",
@@ -42,7 +50,7 @@
       "website": "history-preview.png",
       "width": 1383,
       "height": 954,
-      "sha256": "c8283b7c7079fd046d9ef66adb539ac5e50fdce7225f056ba60a78ccd74758cc"
+      "sha256": "a00d4eb3581069df9d6cc41a7190f8c20c6dd966a2aa8e333808bdc0383ddf69"
     },
     {
       "source": "summary-tile.png",
@@ -58,7 +66,7 @@
       "website": "bar.png",
       "width": 1065,
       "height": 125,
-      "sha256": "a5913b186eb114164d253e360d3cc632b6742c6a3a9b97b4c490537a10d4369c"
+      "sha256": "f606b42e0290e6ea9f709ed20aadec7dc64ad78388d297c2967450d5b746b1c7"
     },
     {
       "source": "simple-workspace.png",
@@ -66,7 +74,7 @@
       "website": "workspace.png",
       "width": 1483,
       "height": 974,
-      "sha256": "bdf056aea9807f348b39dbcea1e38c0877bab5bb27dd79ccd3667f318c12979e"
+      "sha256": "241c2861a7379e4ec93c9318350594d7528af4094715e1164e5f29b2d5386819"
     },
     {
       "source": "workspace-settings.png",
@@ -74,7 +82,7 @@
       "website": "workspace-settings.png",
       "width": 1483,
       "height": 974,
-      "sha256": "1b8cda3557b8aa6846d62491c211d75d43617440ec8720c42eac14cb6a52e2da"
+      "sha256": "f1d169ae4b9fda33caf6e0d05ae5b4788c0178cfbe542386ec0590394082ff3a"
     },
     {
       "source": "subscription-cost.png",
@@ -90,8 +98,37 @@
       "website": "trace.png",
       "width": 1483,
       "height": 974,
-      "sha256": "3a21d17673a9d6d2d51d620b249da24e81ea4a60c48e447ab024330721fcc67b"
+      "sha256": "ab441521c0cae329deea6da3c89825a585a0a1e6f7c852e8d36a58407434afce"
     }
   ],
-  "uiSourceCommit": "3a6538c"
+  "uiSourceBaseCommit": "304659f2b9822f0cd3586e5b9716b19222e69c4b",
+  "uiSourceState": "First-return implementation for 0.7.0-preview.3, captured before its commit",
+  "proofRun": ".ocelin-smoke/v060-1791101325884/data/proof",
+  "packaged": false,
+  "uiSourceFiles": [
+    {
+      "path": "desktop/renderer/first-return.mjs",
+      "sha256": "37cce52b91b245bd9776a5e57537f2b2bb3c1595f8a1d7c4e7c96003acd2d055"
+    },
+    {
+      "path": "desktop/renderer/app.mjs",
+      "sha256": "358da0b30b5fb0bb162871b6b65de20f6b322a491b89ddeaca77dc8dfc64bb98"
+    },
+    {
+      "path": "desktop/renderer/library.mjs",
+      "sha256": "f4d79f0994444b817bfc044ae113ce4bcd7cb67ed8bb62b625fb70956fc04b47"
+    },
+    {
+      "path": "desktop/renderer/index.html",
+      "sha256": "492361d651d782a86a59c01d69d5942a3c3fe58efd796b88960925798a6c543d"
+    },
+    {
+      "path": "desktop/renderer/style.css",
+      "sha256": "3dcc6161c31c2725210725f52afbc850383fe2d6dd966abd962b2de4af44ef99"
+    },
+    {
+      "path": "desktop/lib/preferences.cjs",
+      "sha256": "f6aa8bb3bbb092743781573984e2788ad819c034d417a5dbbf9eb2bd3fc5effc"
+    }
+  ]
 }
