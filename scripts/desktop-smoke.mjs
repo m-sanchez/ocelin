@@ -17,6 +17,28 @@ await Promise.all(
   ),
 );
 await writeFile(join(checkout, "README.md"), "# Ocelin integration fixture\n");
+for (const args of [
+  ["init", "--initial-branch=main"],
+  ["add", "README.md"],
+  [
+    "-c",
+    "user.name=Ocelin Demo",
+    "-c",
+    "user.email=demo@example.test",
+    "-c",
+    "commit.gpgsign=false",
+    "commit",
+    "-m",
+    "Sample workspace",
+  ],
+]) {
+  const result = spawnSync("git", args, {
+    cwd: checkout,
+    windowsHide: true,
+    encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+}
 const timestamp = new Date().toISOString();
 await writeFile(
   join(codex, "rollout.jsonl"),

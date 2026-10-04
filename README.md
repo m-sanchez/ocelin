@@ -22,7 +22,7 @@ The browser core has zero runtime dependencies. The optional Windows app include
 
 Choose an x64 installer from the release table above. Sign-in startup and lifecycle hooks are optional. The following tour covers features across the previews; the linked release notes identify changes in each version.
 
-**Now** groups active sessions by project and shows measured app RAM. Hover a conversation to read its latest request and response; click to continue in the exact Codex or Claude task. **History** searches saved conversations, including those with missing project folders. Select old sessions to hide them in Ocelin, or archive/restore Codex sessions through its native API.
+**Now** groups active sessions by project. In 0.7.0-preview.2, **Settings > What you see** lets you enable allowances, measured app RAM, account details and hints individually. Hover a conversation to read its latest request and response; click to continue in the exact Codex or Claude task. **History** searches saved conversations, including those with missing project folders. Select old sessions to hide them in Ocelin, or archive/restore Codex sessions through its native API.
 
 **Subscription allowance** shows the percentage left for each reported Codex and Claude session, weekly and model-specific limit, with reset countdowns. The desktop refreshes signed-in provider readings every two minutes; the project Cost page uses the same local snapshot. Missing or expired readings stay unavailable. [Usage sources and account scope](docs/WINDOWS-DESKTOP.md#subscription-allowance).
 
@@ -32,13 +32,17 @@ The taskbar puts **running sessions and subscription % left** first. Settings ca
 
 Windows options include the tray, Ctrl Alt O quick panel, floating bar, dashboard, a [native App Tasks development bridge](desktop/native/README.md), and the [optional Taskbar Widgets strip](desktop/integrations/taskbar-widgets/README.md). Native shell features have additional OS/package requirements. [What 0.6 implements and how it was validated](docs/OCELIN-0.6-VALIDATION.md).
 
-Screenshots from **Ocelin 0.6.5**, using sample conversations, accounts and allowance readings. Memory figures come from the capture machine.
+Screenshots from **Ocelin 0.7.0-preview.2**, captured on **4 October 2026**, using sample conversations, accounts and allowance readings. Memory figures come from the capture machine. The dashboard and session panel show the simpler default view.
 
-![Ocelin dashboard with Codex and Claude subscription percentages, reset countdowns, active sessions and the Doctor button](docs/assets/ocelin-desktop.png)
+![Ocelin dashboard with running and attention counts and active sessions grouped by project](docs/assets/ocelin-desktop.png)
+
+Choose how much information appears in the dashboard and session panel:
+
+![Ocelin display settings with individual controls for allowances, memory, workspace launcher, accounts and hints](docs/assets/ocelin-settings.png)
 
 | Sliding session panel | Doctor: cleanup and memory |
 | --- | --- |
-| <img src="docs/assets/ocelin-panel.png" width="340" alt="Ocelin sliding panel with remaining allowance, active sessions and Open workspace" /> | <img src="docs/assets/ocelin-doctor.png" width="340" alt="Doctor with reversible history cleanup, measured memory and separate app stop controls" /> |
+| <img src="docs/assets/ocelin-panel.png" width="340" alt="Ocelin sliding panel showing session counts and active conversations with optional details hidden" /> | <img src="docs/assets/ocelin-doctor.png" width="340" alt="Doctor with reversible history cleanup, measured memory and separate app stop controls" /> |
 
 The movable floating tile can show the same running counts and allowance percentages as the optional taskbar strip:
 
@@ -66,9 +70,11 @@ work on with either assistant and it shows what is actually happening: live
 sessions, an event timeline, cost and context telemetry, git worktrees,
 reviews, and delivery state - in one local web UI.
 
-Choose **Open workspace** in the companion to reach the full project dashboard:
+Choose a project's **Workspace** button in the companion to reach the project dashboard. It starts with sessions and attention; use **Customize view** to enable more information.
 
 ![Project overview dashboard, dark theme](docs/assets/dashboard.png)
+
+![Project workspace display settings for charts, runs, repository cards, health, activity and advanced navigation](docs/assets/workspace-settings.png)
 
 ## Feature tour
 
