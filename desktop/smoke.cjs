@@ -32,6 +32,15 @@ module.exports = async function smoke({
   };
   const output = join(dataDir, "proof");
   mkdirSync(output, { recursive: true });
+  const captureScreenshot = async (window, name) => {
+    await window.webContents.executeJavaScript(
+      "new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))",
+    );
+    writeFileSync(
+      join(output, name),
+      (await window.webContents.capturePage()).toPNG(),
+    );
+  };
   const report = {
     version: app.getVersion(),
     packaged: app.isPackaged,
@@ -211,6 +220,8 @@ module.exports = async function smoke({
     );
     await action("show", { surface: "dashboard" });
     const displayWindow = windows.get("dashboard");
+    const displayBounds = displayWindow.getBounds();
+    displayWindow.setSize(960, 620);
     await until(
       () =>
         displayWindow.webContents.executeJavaScript(
@@ -218,10 +229,19 @@ module.exports = async function smoke({
         ),
       "simple desktop defaults",
     );
-    writeFileSync(
-      join(output, "simple-dashboard.png"),
-      (await displayWindow.webContents.capturePage()).toPNG(),
+    await captureScreenshot(displayWindow, "simple-dashboard.png");
+    await action("show", { surface: "tray" });
+    const simplePanel = windows.get("tray");
+    await until(
+      () =>
+        simplePanel.webContents.executeJavaScript(
+          "!!document.querySelector('#sessions .session') && document.querySelector('#subscriptions').hidden && document.body.dataset.panelOpen === 'true' && document.body.getAnimations().length === 0",
+        ),
+      "simple session panel",
     );
+    await captureScreenshot(simplePanel, "simple-panel.png");
+    await action("show", { surface: "dashboard" });
+    displayWindow.setBounds(displayBounds);
     await displayWindow.webContents.executeJavaScript(
       "document.getElementById('settings').click(); void 0",
     );
@@ -623,6 +643,20 @@ module.exports = async function smoke({
       "history rows",
     );
     await action("show", { surface: "dashboard" });
+    await action("preferences", {
+      showAllowances: false,
+      showMemory: false,
+      showWorkspace: false,
+      showSessionDetails: false,
+      showHints: false,
+    });
+    await until(
+      () =>
+        dashboard.webContents.executeJavaScript(
+          "document.querySelector('#subscriptions').hidden && document.querySelector('#resources').hidden && document.querySelector('.workspace-launcher').hidden",
+        ),
+      "simple history view",
+    );
     await dashboard.webContents.executeJavaScript(
       "document.querySelector('.library-row .session-title').focus()",
     );
@@ -633,10 +667,14 @@ module.exports = async function smoke({
         ),
       "zero-click transcript preview",
     );
-    writeFileSync(
-      join(output, "history-preview.png"),
-      (await dashboard.webContents.capturePage()).toPNG(),
-    );
+    await captureScreenshot(dashboard, "history-preview.png");
+    await action("preferences", {
+      showAllowances: true,
+      showMemory: true,
+      showWorkspace: true,
+      showSessionDetails: true,
+      showHints: true,
+    });
     const hide = await action("library-plan", {
       operation: "hide",
       keys: [claudeSession.key],
@@ -752,10 +790,7 @@ module.exports = async function smoke({
         ),
       "project Cost subscription allowance",
     );
-    writeFileSync(
-      join(output, "subscription-cost.png"),
-      (await project.window.webContents.capturePage()).toPNG(),
-    );
+    await captureScreenshot(project.window, "subscription-cost.png");
     report.checks.push(
       "Project Cost view shows the same subscription percentages as the desktop",
     );
@@ -805,6 +840,7 @@ module.exports = async function smoke({
         ),
       "workspace display settings",
     );
+    await captureScreenshot(workspace, "workspace-settings.png");
     await workspace.webContents.executeJavaScript(
       "document.querySelector('[data-display=repository]').click(); void 0",
     );

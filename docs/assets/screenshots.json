@@ -1,0 +1,97 @@
+{
+  "version": "0.7.0-preview.2",
+  "captured": "2026-10-04",
+  "command": "node scripts/desktop-smoke.mjs --panel-launch",
+  "data": "Sample conversations, accounts and allowances; memory readings from the capture machine.",
+  "assets": [
+    {
+      "source": "simple-dashboard.png",
+      "repository": "ocelin-desktop.png",
+      "website": "desktop.png",
+      "width": 1183,
+      "height": 729,
+      "sha256": "0167ff05be3701943b83bc2555299689c0433cb67f4006ca2f6536af770ec785"
+    },
+    {
+      "source": "simple-panel.png",
+      "repository": "ocelin-panel.png",
+      "website": "session-panel.png",
+      "width": 440,
+      "height": 1376,
+      "sha256": "614b0f2d619e413f67ddaccbaef08cb3e29c6dc6e840f2f3f2c4c2fd99d0cf4b"
+    },
+    {
+      "source": "display-settings.png",
+      "repository": "ocelin-settings.png",
+      "website": "display-settings.png",
+      "width": 1383,
+      "height": 954,
+      "sha256": "640509f280660667280bd7430191c905da3f528673f3996319174bfb48258842"
+    },
+    {
+      "source": "doctor-panel.png",
+      "repository": "ocelin-doctor.png",
+      "website": "doctor-panel.png",
+      "width": 440,
+      "height": 1376,
+      "sha256": "e4da597c659ab98125741bd1175b93a9707429111d06332b0731543f199efb97"
+    },
+    {
+      "source": "history-preview.png",
+      "repository": "ocelin-history.png",
+      "website": "history-preview.png",
+      "width": 1383,
+      "height": 954,
+      "sha256": "c8283b7c7079fd046d9ef66adb539ac5e50fdce7225f056ba60a78ccd74758cc"
+    },
+    {
+      "source": "summary-tile.png",
+      "repository": "ocelin-tile.png",
+      "website": "status-tile.png",
+      "width": 432,
+      "height": 90,
+      "sha256": "061260eeace6b6db05262bee53e85e150cec759b6e6ce5296f82053373d71b03"
+    },
+    {
+      "source": "bar.png",
+      "repository": "ocelin-bar.png",
+      "website": "bar.png",
+      "width": 1065,
+      "height": 125,
+      "sha256": "a5913b186eb114164d253e360d3cc632b6742c6a3a9b97b4c490537a10d4369c"
+    },
+    {
+      "source": "simple-workspace.png",
+      "repository": "dashboard.png",
+      "website": "workspace.png",
+      "width": 1483,
+      "height": 974,
+      "sha256": "bdf056aea9807f348b39dbcea1e38c0877bab5bb27dd79ccd3667f318c12979e"
+    },
+    {
+      "source": "workspace-settings.png",
+      "repository": "workspace-settings.png",
+      "website": "workspace-settings.png",
+      "width": 1483,
+      "height": 974,
+      "sha256": "1b8cda3557b8aa6846d62491c211d75d43617440ec8720c42eac14cb6a52e2da"
+    },
+    {
+      "source": "subscription-cost.png",
+      "repository": "cost.png",
+      "website": "cost.png",
+      "width": 1483,
+      "height": 974,
+      "sha256": "07f94bfb61f71fd8c4e089e4efc6e2fd9a7c05d2592daa933ab36c965c1acf56"
+    },
+    {
+      "source": "trace-diagnostics.png",
+      "repository": "trace.png",
+      "website": "trace.png",
+      "width": 1483,
+      "height": 974,
+      "sha256": "3a21d17673a9d6d2d51d620b249da24e81ea4a60c48e447ab024330721fcc67b"
+    }
+  ],
+  "uiSourceCommit": "3a6538c"
+}
