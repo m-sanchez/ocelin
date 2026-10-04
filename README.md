@@ -4,7 +4,7 @@
 
 Ocelin, formerly Clawdeck, brings **Codex and Claude Code sessions into one local view**. Find active work, inspect recent messages, search saved conversations and reopen the relevant task. Use the browser dashboard for a project, or the optional Windows companion for desktop status.
 
-[Try the 0.6.8 Windows preview](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) · [Browser quickstart](#quickstart) · [Website](https://miguelsanchez.co.uk/ocelin/) · [Desktop compatibility](docs/WINDOWS-DESKTOP.md)
+[Try the 0.7.0-preview.3 Windows build](https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.3) · [Browser quickstart](#quickstart) · [Website](https://miguelsanchez.co.uk/ocelin/) · [Desktop compatibility](docs/WINDOWS-DESKTOP.md)
 
 The Windows installers are unsigned previews with manual updates. Native shell features have additional Windows requirements. Local monitoring reads provider history on this computer; optional **Ask Ocelin** sends your question and a compact, secret-scanned state snapshot through Claude Code to its configured model service.
 
@@ -12,17 +12,19 @@ The Windows installers are unsigned previews with manual updates. Native shell f
 
 | Release | Use |
 | --- | --- |
-| [0.6.8](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) | The existing preview used by the quickstart below, with Windows installer and browser package. |
-| [0.7.0-preview.2](https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.2) | Experimental preview with simpler default views, display controls, diagnostics and transcript search. See the release notes and [preview limits](docs/WINDOWS-DESKTOP.md#validation-and-preview-limits). |
+| [0.7.0-preview.3](https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.3) | Current experimental preview, shown in the tour below. Adds a guided first return to a conversation, with explicit confirmation after requesting the provider to open it. [Release notes](docs/releases/v0.7.0-preview.3.md). |
+| [0.6.8](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) | Earlier preview available as a fallback, with Windows installer and browser package. It does not include the new first-return path or simpler 0.7 defaults. This is also a preview, not a stable release. |
 | [`clawdeck-panel` on npm](https://www.npmjs.com/package/clawdeck-panel) | Earlier 0.3.0 Clawdeck browser package. It is separate from the GitHub preview downloads. |
 
 The browser core has zero runtime dependencies. The optional Windows app includes its runtime. GitHub preview packages provide both `ocelin` and `clawdeck` commands; the existing npm package keeps its `clawdeck` command. Old repository links redirect to `m-sanchez/ocelin`.
 
 ## Windows companion
 
-Choose an x64 installer from the release table above. Sign-in startup and lifecycle hooks are optional. The following tour covers features across the previews; the linked release notes identify changes in each version.
+Choose an x64 installer from the release table above. Sign-in startup and lifecycle hooks are optional. This tour and its desktop screenshots describe **0.7.0-preview.3**; earlier previews differ.
 
-**Now** groups active sessions by project. In 0.7.0-preview.2, **Settings > What you see** lets you enable allowances, measured app RAM, account details and hints individually. Hover a conversation to read its latest request and response; click to continue in the exact Codex or Claude task. **History** searches saved conversations, including those with missing project folders. Select old sessions to hide them in Ocelin, or archive/restore Codex sessions through its native API.
+**Return to a conversation** appears on a new installation. Choose Codex or Claude, preview the suggested session, then request opening in its provider. Check the destination yourself before selecting **Yes, this is the right conversation**. Browse History to choose a different task, or Skip and return later through **Settings > Find a conversation**. Existing installations keep their established view.
+
+**Now** groups active sessions by project. **Settings > What you see** lets you enable allowances, measured app RAM, account details and hints individually. Hover a conversation to read its latest request and response; click to request opening in Codex or Claude. **History** searches saved conversations, including those with missing project folders. Select old sessions to hide them in Ocelin, or archive/restore Codex sessions through its native API.
 
 **Subscription allowance** shows the percentage left for each reported Codex and Claude session, weekly and model-specific limit, with reset countdowns. The desktop refreshes signed-in provider readings every two minutes; the project Cost page uses the same local snapshot. Missing or expired readings stay unavailable. [Usage sources and account scope](docs/WINDOWS-DESKTOP.md#subscription-allowance).
 
@@ -32,7 +34,13 @@ The taskbar puts **running sessions and subscription % left** first. Settings ca
 
 Windows options include the tray, Ctrl Alt O quick panel, floating bar, dashboard, a [native App Tasks development bridge](desktop/native/README.md), and the [optional Taskbar Widgets strip](desktop/integrations/taskbar-widgets/README.md). Native shell features have additional OS/package requirements. [What 0.6 implements and how it was validated](docs/OCELIN-0.6-VALIDATION.md).
 
-Screenshots from **Ocelin 0.7.0-preview.2**, captured on **4 October 2026**, using sample conversations, accounts and allowance readings. Memory figures come from the capture machine. The dashboard and session panel show the simpler default view.
+Screenshots from **Ocelin 0.7.0-preview.3**, captured on **4 October 2026**, using sample conversations, accounts and allowance readings. Memory figures come from the capture machine. The dashboard and session panel show the simpler default view. [Capture provenance](docs/assets/screenshots.json).
+
+![Ocelin first-return view with a sample Claude conversation, Preview conversation, Open in Claude, Browse History and Skip controls](docs/assets/ocelin-first-return.png)
+
+The preview lets you inspect a saved conversation before deciding to reopen it:
+
+![Ocelin History showing a sample Claude conversation, its latest request and an Open in Claude control](docs/assets/ocelin-history.png)
 
 ![Ocelin dashboard with running and attention counts and active sessions grouped by project](docs/assets/ocelin-desktop.png)
 
@@ -158,17 +166,17 @@ Principles:
 
 ## Quickstart
 
-This quickstart uses the **0.6.8 preview** browser package attached to its GitHub release and requires Node 20 or newer. Installing `clawdeck-panel` directly from npm instead gives the earlier 0.3.0 package. For the experimental 0.7 preview, use its separately labelled release assets.
+This quickstart uses the **0.7.0-preview.3 experimental** browser package attached to its GitHub release and requires Node 20 or newer. Installing `clawdeck-panel` directly from npm instead gives the earlier 0.3.0 package. The [0.6.8 preview assets](https://github.com/m-sanchez/ocelin/releases/tag/v0.6.8) remain available for the earlier version.
 
 ```bash
-npm install --global https://github.com/m-sanchez/ocelin/releases/download/v0.6.8/clawdeck-panel-0.6.8.tgz
+npm install --global https://github.com/m-sanchez/ocelin/releases/download/v0.7.0-preview.3/clawdeck-panel-0.7.0-preview.3.tgz
 ocelin run --checkout /path/to/your/project
 ```
 
 Or clone the same preview source:
 
 ```bash
-git clone --branch v0.6.8 --depth 1 https://github.com/m-sanchez/ocelin.git
+git clone --branch v0.7.0-preview.3 --depth 1 https://github.com/m-sanchez/ocelin.git
 cd ocelin
 node scripts/panel-run.mjs --checkout /path/to/your/project
 ```

@@ -229,6 +229,93 @@ module.exports = async function smoke({
         ),
       "simple desktop defaults",
     );
+    await action("preferences", { firstReturnDismissed: false });
+    await until(
+      () =>
+        displayWindow.webContents.executeJavaScript(
+          "!document.getElementById('first-return').hidden",
+        ),
+      "first return entry",
+    );
+    await captureScreenshot(displayWindow, "first-return.png");
+    for (const provider of ["codex", "claude"]) {
+      displayWindow.focus();
+      displayWindow.webContents.focus();
+      await displayWindow.webContents.executeJavaScript(
+        `document.getElementById('return-provider').value = '${provider}'; document.getElementById('return-provider').dispatchEvent(new Event('change')); document.getElementById('return-preview').focus(); void 0`,
+      );
+      displayWindow.webContents.sendInputEvent({
+        type: "keyDown",
+        keyCode: "Enter",
+      });
+      displayWindow.webContents.sendInputEvent({
+        type: "char",
+        keyCode: "\r",
+      });
+      displayWindow.webContents.sendInputEvent({
+        type: "keyUp",
+        keyCode: "Enter",
+      });
+      await until(
+        () =>
+          displayWindow.webContents.executeJavaScript(
+            `!document.getElementById('session-peek').hidden && document.activeElement.id === 'session-peek' && document.getElementById('session-peek').innerText.includes('${provider.toUpperCase()}')`,
+          ),
+        `${provider} first return keyboard preview`,
+      );
+      await displayWindow.webContents.executeJavaScript(
+        "document.querySelector('#session-peek .peek-close').click(); void 0",
+      );
+      assert.equal(
+        await displayWindow.webContents.executeJavaScript(
+          "document.activeElement.id",
+        ),
+        "return-preview",
+      );
+      const canOpen = getState().connections[provider]?.nativeOpen;
+      assert.equal(
+        await displayWindow.webContents.executeJavaScript(
+          "document.getElementById('return-open').disabled",
+        ),
+        !canOpen,
+      );
+      if (canOpen) {
+        await displayWindow.webContents.executeJavaScript(
+          "document.getElementById('return-open').click(); void 0",
+        );
+        await until(
+          () =>
+            displayWindow.webContents.executeJavaScript(
+              "!document.getElementById('return-confirm').disabled",
+            ),
+          `${provider} dispatch acknowledgement`,
+        );
+        assert.equal(getState().preferences.firstReturnDismissed, false);
+        await displayWindow.webContents.executeJavaScript(
+          "document.getElementById('return-retry').click(); void 0",
+        );
+      }
+    }
+    await displayWindow.webContents.executeJavaScript(
+      "document.getElementById('return-history').click(); void 0",
+    );
+    await until(
+      () =>
+        displayWindow.webContents.executeJavaScript(
+          "!document.getElementById('library-view').hidden",
+        ),
+      "first return history route",
+    );
+    await displayWindow.webContents.executeJavaScript(
+      "document.querySelector('[data-view=now]').click(); document.getElementById('return-skip').click(); void 0",
+    );
+    await until(
+      () => getState().preferences.firstReturnDismissed,
+      "first return skip persists",
+    );
+    report.checks.push(
+      "First return previews both providers by keyboard, opens History, preserves explicit confirmation after simulated dispatch, and allows persistent skipping; external provider rendering is not established",
+    );
     await captureScreenshot(displayWindow, "simple-dashboard.png");
     await action("show", { surface: "tray" });
     const simplePanel = windows.get("tray");

@@ -32,6 +32,7 @@ const defaults = {
   showWorkspace: false,
   showSessionDetails: false,
   showHints: false,
+  firstReturnDismissed: false,
   mutedProviders: [],
   mutedProjects: [],
   sources: null,
@@ -60,6 +61,7 @@ function validate(input, previous = defaults) {
     "showWorkspace",
     "showSessionDetails",
     "showHints",
+    "firstReturnDismissed",
   ])
     if (typeof input[key] === "boolean") next[key] = input[key];
   for (const [key, values] of Object.entries({
@@ -95,6 +97,10 @@ class Preferences {
     } catch {}
     this.value = {
       ...validate(saved),
+      firstReturnDismissed:
+        typeof saved.firstReturnDismissed === "boolean"
+          ? saved.firstReturnDismissed
+          : Object.keys(saved).length > 0,
       sources: Array.isArray(saved.sources) ? saved.sources : null,
       accountProfiles: Array.isArray(saved.accountProfiles)
         ? saved.accountProfiles

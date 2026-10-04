@@ -1,5 +1,11 @@
 # Ocelin 0.6 integration preview
 
+## 0.7.0-preview.3 first-return follow-up
+
+All 743 tests, the server self-test and four focused first-return tests passed. Source and packaged Electron smoke checks passed, including keyboard previews for both providers, explicit confirmation after simulated dispatch, History selection, persistent skipping and recovery through Settings. The packaged executable and installer passed branding checks for all nine icon sizes. The packaged evidence is recorded in `.ocelin-smoke/v060-1791101714201/data/proof/report.json`.
+
+The version-matched tour uses synthetic source-build captures from `.ocelin-smoke/v060-1791101325884/data/proof`; [the asset manifest](assets/screenshots.json) records their file hashes. These checks establish interface and state behavior, not external provider rendering or an independent person's successful return. This remains an unsigned experimental preview with manual updates. The signing, hardware, native shell and sustained performance limits below remain open.
+
 ## 0.7.0-preview.1 follow-up
 
 The local preview adds deterministic trace diagnostics, expandable tool-span details, the `ocelin inspect` command, opt-in transcript text search, read-only WSL transcript folders and local remote mirrors. It completes the pending account identity and subscription allowance integration. Search runs in bounded batches and reports incomplete coverage; it does not yet meet the research's indexed-search latency target.

@@ -46,6 +46,40 @@
     </header>
     <div id="error" role="alert" hidden></div>
     <main id="content">
+      <section
+        id="first-return"
+        class="first-return"
+        aria-labelledby="return-heading"
+        hidden
+      >
+        <div class="return-heading">
+          <h2 id="return-heading">Return to a conversation</h2>
+          <button id="return-skip" class="text-button">Skip</button>
+        </div>
+        <label for="return-provider">Provider</label>
+        <select id="return-provider">
+          <option value="codex">Codex</option>
+          <option value="claude">Claude</option>
+        </select>
+        <p id="return-status" class="muted"></p>
+        <strong id="return-title"></strong>
+        <p id="return-project" class="muted"></p>
+        <p id="return-detail" role="status"></p>
+        <div class="buttons">
+          <button id="return-preview">Preview conversation</button>
+          <button id="return-open">Open in provider</button>
+          <button id="return-confirm" hidden>
+            Yes, this is the right conversation
+          </button>
+          <button id="return-retry" hidden>Try another conversation</button>
+        </div>
+        <div class="buttons">
+          <button id="return-history" class="text-button">Browse History</button
+          ><button id="return-settings" class="text-button">
+            Source and profile settings
+          </button>
+        </div>
+      </section>
       <section class="workspace-launcher" aria-label="Full project workspace">
         <div>
           <strong>Full project workspace</strong
@@ -165,6 +199,9 @@
       <div class="settings-body">
         <fieldset id="display-settings">
           <legend>What you see</legend>
+          <button id="return-reopen" class="text-button">
+            Find a conversation
+          </button>
           <p>
             Start with sessions and their status. Add details when you need
             them.

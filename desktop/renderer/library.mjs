@@ -29,6 +29,7 @@ let api,
   previewSequence = 0,
   hoverTimer,
   closeTimer,
+  previewTrigger,
   pendingPlan;
 const selected = new Set();
 const previewCache = new Map();
@@ -38,7 +39,11 @@ export function libraryView() {
 export function closePreview() {
   previewSequence++;
   clearTimeout(hoverTimer);
-  $("session-peek").hidden = true;
+  const panel = $("session-peek");
+  const restore = panel.contains(document.activeElement) && previewTrigger;
+  previewTrigger = null;
+  panel.hidden = true;
+  if (restore?.isConnected) restore.focus();
 }
 export function attachPreview(row, session) {
   const title = row.querySelector(".session-title");
@@ -64,8 +69,12 @@ export function attachPreview(row, session) {
       closeTimer = setTimeout(closePreview, 250);
   });
 }
-async function peek(session) {
+async function peek(session, { focus = false } = {}) {
   if (document.hidden || document.querySelector("dialog[open]")) return;
+  if (previewTrigger && !focus) return;
+  clearTimeout(closeTimer);
+  clearTimeout(hoverTimer);
+  previewTrigger = focus ? document.activeElement : null;
   const serial = ++previewSequence;
   const panel = $("session-peek");
   panel.hidden = false;
@@ -87,12 +96,15 @@ async function peek(session) {
   if (previewCache.size > 100)
     previewCache.delete(previewCache.keys().next().value);
   const heading = element("div", "peek-heading");
+  const close = button("×", closePreview, "peek-close");
+  close.setAttribute("aria-label", "Close conversation preview");
   heading.append(
     providerIcon(value.provider),
     element("span", "eyebrow", value.provider === "codex" ? "CODEX" : "CLAUDE"),
-    button("×", closePreview, "peek-close"),
+    close,
   );
   const title = element("h2", "", value.displayTitle);
+  title.id = "peek-title";
   const project = element(
     "p",
     "peek-project",
@@ -175,6 +187,11 @@ async function peek(session) {
         "primary",
       ),
     );
+  if (focus) {
+    panel.tabIndex = -1;
+    panel.setAttribute("aria-labelledby", "peek-title");
+    panel.focus();
+  }
 }
 export { peek as previewSession };
 export async function showLibrary(next) {
@@ -390,7 +407,7 @@ export function initLibrary(action, renderNow) {
     clearTimeout(closeTimer),
   );
   $("session-peek").addEventListener("pointerleave", () => {
-    closeTimer = setTimeout(closePreview, 250);
+    if (!previewTrigger) closeTimer = setTimeout(closePreview, 250);
   });
   $("session-peek").addEventListener("focusin", () => clearTimeout(closeTimer));
   document.addEventListener("keydown", (e) => {

@@ -1,5 +1,7 @@
 # Ocelin for Windows
 
+Version **0.7.0-preview.3** adds **Return to a conversation** for new installations. It shows local provider availability and a recent session to preview, with separate controls to request opening, browse History, check source/profile settings or skip. After an open request, confirm only when you have checked the destination in the provider. Sending a native URI does not prove that the intended conversation rendered. Existing preferences keep the guide dismissed; reopen it through **Settings > Find a conversation**.
+
 Version 0.7.0-preview.2 starts with a simpler session panel and dashboard. Open **Settings → What you see** to enable counts, allowances, memory, the workspace launcher, account/profile labels or help text individually. **Keep it simple** resets just these display choices; **Show all details** restores them. Other settings are grouped into collapsed sections.
 
 The full project workspace also has **Settings → What you see**, with separate switches for charts, runs/jobs, repository cards, health, activity and advanced navigation. Sessions and attention remain visible. Workspace display choices persist across reopening; the desktop shares them across project workspaces. Standalone browser installations store them in the panel runtime directory. These controls change presentation, not monitoring or notifications.
@@ -25,6 +27,16 @@ Use the x64 Windows installer from [Releases](https://github.com/m-sanchez/oceli
 For development, install Node 22.12 or newer, run `npm ci` inside `desktop/`, then `npm start`. `npm run pack` produces an unpacked app; `npm run dist` produces the NSIS installer. The browser core continues to need only Node 20 or newer and no runtime npm dependencies.
 
 ## Choose your surfaces
+
+### First return and recovery
+
+Choose Codex or Claude, then **Preview conversation** to inspect the saved request and response. The explicit preview moves keyboard focus to its close control and returns focus when closed. Hidden tasks and subagents are not suggested. **Open in Codex/Claude** requests the saved native route using the provider's current sign-in; Ocelin does not submit a message or start work automatically. **Try another conversation** opens History.
+
+While discovery runs, the guide reports that it is looking for conversations. If none are recent, search History. Unavailable folders direct you to source and account-profile settings. A conversation can remain previewable without its desktop provider installed; native opening stays unavailable. WSL and remote mirrors remain preview-only. For a non-default profile, inspect the source and account labels and the provider's current sign-in before opening; native actions retain their existing path checks.
+
+**Skip** hides the guide persistently without changing source files. **Yes, this is the right conversation** is a user confirmation, not an automatically verified result. The first-return smoke uses synthetic sessions and simulated provider dispatch. It checks the interface and state transitions, not another app's rendering or an independent person's successful return.
+
+### Available surfaces
 
 - **Windows tray:** running and attention counts, a sliding session panel at the right edge, and a menu to reopen windows or quit.
 - **Floating bar:** compact session chips or a status tile with running counts and app RAM; move freely or anchor above the Windows taskbar.
