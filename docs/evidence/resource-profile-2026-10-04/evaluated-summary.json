@@ -1,0 +1,62 @@
+{
+  "phase": "tray-idle",
+  "sampleCount": 344,
+  "elapsedSeconds": 1800.9700000000005,
+  "requiredSeconds": 1800,
+  "privateWorkingMiB": {
+    "minimum": 100.59765625,
+    "maximum": 103.91015625,
+    "mean": 101.63005314316861
+  },
+  "workingMiB": {
+    "minimum": 292.82421875,
+    "maximum": 296.33203125,
+    "mean": 294.6651980377907
+  },
+  "observedCpuSeconds": 2.609375,
+  "observedWholeMachineCpuPercent": 0.006585781803442285,
+  "incompleteIntervals": 0,
+  "longGaps": 0,
+  "counterErrors": 0,
+  "emptyTreeSamples": 0,
+  "missingCounters": false,
+  "samplingComplete": true,
+  "runComplete": true,
+  "complete": true,
+  "cpuCoverage": "Lower bound from sampled process identities; children born and exited between snapshots are not observed",
+  "targets": {
+    "privateWorkingMiB": {
+      "limit": 150,
+      "statistic": "maximum sampled process-tree private working set",
+      "result": "passed"
+    },
+    "wholeMachineCpuPercent": {
+      "limit": 0.5,
+      "statistic": "observed process CPU delta / wall time / logical processors",
+      "result": "inconclusive",
+      "reason": "Complete process-lifetime CPU accounting is not implemented"
+    }
+  },
+  "evaluatorSha256": "b268afdb6070a81ff3ff4eda9d13b0a1d651162d32b342d3074f093800247f36",
+  "samplesSha256": "ef766f1a9f3df8703e571765c4375eb421ee89207113f565a4f19fa59007da34",
+  "driver": {
+    "phase": "complete",
+    "blockedRequests": 0,
+    "blockedActions": 0,
+    "synthetic": true,
+    "dashboardLoaded": true,
+    "fixtureSessions": 3,
+    "version": "0.7.0-preview.3",
+    "idleStartedAt": 1791106717509,
+    "conditions": {
+      "windowsReleased": true,
+      "resourceSamplerPaused": true,
+      "providerSubscriptions": "fixture only",
+      "sources": "three synthetic sessions"
+    },
+    "at": 1791108521666
+  },
+  "appExitCode": 0,
+  "samplerError": null,
+  "collectionSanityRun": false
+}

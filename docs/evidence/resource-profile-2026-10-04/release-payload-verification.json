@@ -1,0 +1,11 @@
+{
+  "release": "https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.3",
+  "installerSha256": "ebc2f83d28b7f5f1b4705f0f4b9284585f67160ed8618347c2a49b72026aa028",
+  "executableSha256": "fc4be25460dcfc62fee4b47d1474053d529b0b144cb37cc1aff6fb3515e21799",
+  "originalArchiveSha256": "060e10f16e0b164e4587e2382a3108f6a764ee48ee9196b1b2118feed4642685",
+  "method": "Extracted the complete app-64.7z payload from the hash-verified public installer without running the installer; all 292 package files matched",
+  "matchesOriginalProfilePackage": true,
+  "allPackageFilesMatchInstallerPayload": true,
+  "packageFiles": 292,
+  "payloadManifestSha256": "d20c2cf16c6f3ad48b4152b624e256a36ec256a39709970aa2896f5b00e20635"
+}

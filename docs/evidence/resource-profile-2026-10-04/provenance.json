@@ -1,0 +1,69 @@
+{
+  "release": "v0.7.0-preview.3",
+  "sourceRevision": "1e45dde35dd838908c1bd9e35b1603167921c9ca",
+  "instrumentedTestDriver": true,
+  "command": "node scripts/desktop-resource-profile.mjs desktop/dist/win-unpacked",
+  "requiredScoredSeconds": 1800,
+  "targetEvaluationRequiresSeconds": 1800,
+  "phases": [
+    {
+      "name": "warmup-ui",
+      "scored": false,
+      "minimumSeconds": 20,
+      "workload": "Three completed synthetic sessions; one library query; dashboard visible"
+    },
+    {
+      "name": "warmup-hidden",
+      "scored": false,
+      "minimumSeconds": 75,
+      "workload": "Hide dashboard; allow renderer and library idle release"
+    },
+    {
+      "name": "tray-idle",
+      "scored": true,
+      "minimumSeconds": 1800,
+      "workload": "Tray only; library closed; fixed synthetic sources; subscription reads use fixture mode"
+    }
+  ],
+  "machine": {
+    "platform": "win32",
+    "osRelease": "10.0.26200",
+    "architecture": "x64",
+    "logicalProcessors": 22,
+    "cpuModel": "Intel(R) Core(TM) Ultra 7 155H",
+    "totalMemoryBytes": 68137205760
+  },
+  "originalArchiveSha256": "060e10f16e0b164e4587e2382a3108f6a764ee48ee9196b1b2118feed4642685",
+  "instrumentedArchiveSha256": "82968fb3df4d38e21115fd9b89c58c6970b65cc290b3b9b97fe64627e8d8e897",
+  "executableSha256": "fc4be25460dcfc62fee4b47d1474053d529b0b144cb37cc1aff6fb3515e21799",
+  "originalDriverSha256": "a21d0679d47fa3b17fccccb8ad365bf1796b888ea7c7146d49ebfa5e93c76cb9",
+  "instrumentedDriverSha256": "5f3d96866a59b53366f84a1655734b6168e09849c2b7fe2f7f3920ce97b8a7db",
+  "changedArchiveEntries": [
+    "smoke.cjs"
+  ],
+  "changedPackageFiles": [
+    "resources/app.asar"
+  ],
+  "measurementFiles": [
+    {
+      "path": "scripts/desktop-resource-profile.mjs",
+      "sha256": "ddae945864c8c6a5fd7a4f285e7d9df29092db8d744db8023554c39282b1e836"
+    },
+    {
+      "path": "scripts/resource-profile-driver.cjs",
+      "sha256": "5f3d96866a59b53366f84a1655734b6168e09849c2b7fe2f7f3920ce97b8a7db"
+    },
+    {
+      "path": "scripts/resource-profile-model.mjs",
+      "sha256": "513358a324af52259cd2186e1c4efa9041fff24b6743db8988cb50e1e165c1fb"
+    },
+    {
+      "path": "scripts/resource-profile-sampler.ps1",
+      "sha256": "65017e185eba1eb57b841cb67c3ae420888f0977a20f8a510dedc2c0cb5d4eae"
+    }
+  ],
+  "evaluation": {
+    "modelSha256": "b268afdb6070a81ff3ff4eda9d13b0a1d651162d32b342d3074f093800247f36",
+    "note": "Raw samples are unchanged. The final evaluator adds successful-execution checks and keeps the CPU target inconclusive because process lifetimes are not fully observed. Original collection hashes and final evaluator hash are recorded separately."
+  }
+}
