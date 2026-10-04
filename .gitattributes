@@ -1,1 +1,8 @@
 *.patch text eol=lf
+/docs/evidence/resource-profile-2026-10-04/** -text whitespace=cr-at-eol
+/docs/evidence/resource-profile-2026-10-04/test-driver.patch whitespace=-blank-at-eol
+/scripts/desktop-resource-profile.mjs text eol=lf
+/scripts/resource-profile-driver.cjs text eol=lf
+/scripts/resource-profile-model.mjs text eol=lf
+/scripts/resource-profile-sampler.ps1 text eol=lf
+/tests/resource-profile-model.test.mjs text eol=lf

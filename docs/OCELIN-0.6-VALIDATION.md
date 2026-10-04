@@ -1,5 +1,9 @@
 # Ocelin 0.6 integration preview
 
+## 4 October resource profile
+
+A [30-minute synthetic tray-only profile](RESOURCE-PROFILE.md) of the released 0.7.0-preview.3 runtime with an instrumented test driver observed a maximum sampled private working set of 103.91 MiB. Total working set was 292.82 to 296.33 MiB. This supplies a bounded idle baseline for three synthetic sessions; complete process-tree CPU coverage and representative live-provider resource targets remain open. The earlier snapshots below retain their original counters and scope.
+
 ## 0.7.0-preview.3 first-return follow-up
 
 All 743 tests, the server self-test and four focused first-return tests passed. Source and packaged Electron smoke checks passed, including keyboard previews for both providers, explicit confirmation after simulated dispatch, History selection, persistent skipping and recovery through Settings. The packaged executable and installer passed branding checks for all nine icon sizes. The packaged evidence is recorded in `.ocelin-smoke/v060-1791101714201/data/proof/report.json`.
