@@ -190,7 +190,8 @@ node scripts/panel-run.mjs --checkout /path/to/your/project
 That alone gives you the git-level views (worktrees, diff, commits, MR draft)
 and session liveness from Claude Code and Codex's local transcript files, with zero setup
 and one loopback server. It writes runtime state only under `.claude/.runtime/`
-in your project, and `ocelin stop` shuts the server down.
+in your project. To shut the server down, run `ocelin stop --checkout /path/to/your/project`
+(from the clone: `node scripts/panel-stop.mjs --checkout /path/to/your/project`).
 
 Codex sessions are discovered automatically under `CODEX_HOME/sessions`
 (`~/.codex/sessions` by default), matched to the observed checkout and its
