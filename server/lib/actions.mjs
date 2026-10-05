@@ -73,7 +73,7 @@ function writeJsonAtomic(path, value) {
 /**
  * @param {string} name
  * @param {Record<string, unknown>} params
- * @param {{ ctx: any, hub: import('./http.mjs').EventHub, setReviews: Function, refresh: Function, resolveWorktree?: Function, spawn?: Function, secretScan?: Function }} deps
+ * @param {{ ctx: any, hub: import('./http.mjs').EventHub, setReviews: Function, refresh: Function, resolveWorktree?: Function, spawn?: Function, secretScan?: Function, platform?: string }} deps
  */
 export async function runAction(name, params, deps) {
   const { ctx, hub } = deps;
@@ -252,9 +252,7 @@ export async function runAction(name, params, deps) {
     }
 
     case "editor.open": {
-      // Launch VS Code at a worktree (or a file:line). Fixed binary, fixed
-      // argv - no shell anywhere, so there is no quoting layer to escape and
-      // no character blocklist to maintain. Paths are still validated and
+      // Launch VS Code at a worktree or file:line; the path is validated and
       // canonicalised under the worktree before launch.
       const target = params.worktreePath
         ? await deps.resolveWorktree(String(params.worktreePath))
@@ -274,22 +272,30 @@ export async function runAction(name, params, deps) {
       } else {
         argv = [root];
       }
-      // On Windows, `code` is code.cmd, and node (post CVE-2024-27980)
-      // refuses to spawn .cmd files without a shell. The arguments stay a
-      // discrete argv - node quotes each element - but cmd.exe still expands
-      // %VAR% inside an argument and ends the command at a line break even
-      // inside quotes, so those characters are rejected outright.
-      const win = process.platform === "win32";
+      // node won't spawn code.cmd bare (CVE-2024-27980), so cmd.exe is explicit:
+      // each argument is self-quoted and passed verbatim with /v:off and /s so
+      // cmd treats path metacharacters as literal, and ", %, CR, LF stay
+      // rejected because they would still break out of the quoting.
+      const win = (deps.platform || process.platform) === "win32";
       if (win && argv.some((a) => /["%\r\n]/.test(a)))
         return bad("Unsafe path for the Windows editor launcher.");
       const editorBin = win ? "cmd.exe" : "code";
-      const editorArgv = win ? ["/d", "/s", "/c", "code", ...argv] : argv;
+      const editorArgv = win
+        ? [
+            "/d",
+            "/v:off",
+            "/s",
+            "/c",
+            `"${["code", ...argv].map((a) => `"${a}"`).join(" ")}"`,
+          ]
+        : argv;
       try {
         const launch = deps.spawn || spawn;
         const child = launch(editorBin, editorArgv, {
           detached: true,
           stdio: "ignore",
           windowsHide: true,
+          ...(win ? { windowsVerbatimArguments: true } : {}),
         });
         child.on("error", () => {});
         child.unref();

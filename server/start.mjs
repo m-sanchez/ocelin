@@ -41,7 +41,7 @@ import {
   sendText,
   sendStaticFile,
   sendExactFile,
-  escapeHtml,
+  logServerError,
 } from "./lib/http.mjs";
 import { buildSnapshot } from "./lib/snapshot.mjs";
 import { EventStore } from "./core/events/store.mjs";
@@ -378,10 +378,11 @@ async function refreshReviewInbox() {
       enabled: reviewInboxEnabled(),
     });
   } catch (e) {
+    logServerError("review inbox refresh failed", e);
     inboxCache = {
       available: false,
       reason: "fetch-failed",
-      detail: String((e && e.message) || e),
+      detail: "The review inbox could not be read.",
       provider: forgeCache?.provider ?? null,
       items: [],
       notes: [],
@@ -437,9 +438,10 @@ async function refreshCi() {
       { enabled: reviewInboxEnabled() },
     );
   } catch (e) {
+    logServerError("ci refresh failed", e);
     ciCache = {
       available: false,
-      reason: String((e && e.message) || e),
+      reason: "unavailable",
       provider: forgeCache?.provider ?? null,
       ref: sha,
       failures: [],
@@ -892,8 +894,9 @@ const server = http.createServer(async (request, response) => {
           params: body.params || {},
         });
       } catch (e) {
+        logServerError("command build failed", e);
         return sendJson(response, 400, {
-          error: String((e && e.message) || e),
+          error: "Could not build this command for the checkout.",
         });
       }
       const started = jobs.start({
@@ -1552,9 +1555,8 @@ const server = http.createServer(async (request, response) => {
     const rel = path === "/" ? "index.html" : path.replace(/^\/+/, "");
     return await sendStaticFile(response, uiDir, rel);
   } catch (error) {
-    sendJson(response, 500, {
-      error: escapeHtml(error?.message ?? String(error)),
-    });
+    logServerError("request handler failed", error);
+    sendJson(response, 500, { error: "Internal server error" });
   }
 });
 

@@ -32,6 +32,21 @@ const SECURITY_HEADERS = {
   "cache-control": "no-store",
 };
 
+/**
+ * Log a caught error server-side without returning its text to a client, so an
+ * error response can never leak a stack trace or an absolute path.
+ */
+export function logServerError(context, error) {
+  try {
+    console.error(
+      `[ocelin] ${context}:`,
+      error?.stack ?? error?.message ?? error,
+    );
+  } catch {
+    /* logging must never throw into the response path */
+  }
+}
+
 /** Escape a string for safe interpolation into HTML/log views. */
 export function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) =>
@@ -102,8 +117,10 @@ export async function sendStaticFile(response, rootDir, relativePath) {
     });
     response.end(body);
   } catch (error) {
-    sendJson(response, error?.code === "ENOENT" ? 404 : 500, {
-      error: error?.message ?? String(error),
+    const notFound = error?.code === "ENOENT";
+    logServerError("static file read failed", error);
+    sendJson(response, notFound ? 404 : 500, {
+      error: notFound ? "Not found" : "Could not read the requested file",
     });
   }
 }
@@ -120,8 +137,10 @@ export async function sendExactFile(response, absolutePath, contentType) {
     });
     response.end(body);
   } catch (error) {
-    sendJson(response, error?.code === "ENOENT" ? 404 : 500, {
-      error: error?.message ?? String(error),
+    const notFound = error?.code === "ENOENT";
+    logServerError("exact file read failed", error);
+    sendJson(response, notFound ? 404 : 500, {
+      error: notFound ? "Not found" : "Could not read the requested file",
     });
   }
 }
