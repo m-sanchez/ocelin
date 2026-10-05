@@ -55,3 +55,23 @@ test("editor.open still rejects a path that escapes the worktree", async () => {
   assert.equal(calls.length, 0, "nothing is launched");
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+test("editor.open keeps a space-free path with cmd metacharacters in one quoted argument on Windows", async () => {
+  const { root, calls, deps } = harness();
+  deps.platform = "win32";
+  const ok = await runAction(
+    "editor.open",
+    { worktreePath: root, file: "x&calc&", line: 1 },
+    deps,
+  );
+  assert.equal(ok.ok, true);
+  assert.equal(calls.length, 1);
+  const { bin, argv, opts } = calls[0];
+  assert.equal(bin, "cmd.exe");
+  assert.equal(opts.windowsVerbatimArguments, true, "node must not re-quote");
+  assert.deepEqual(argv.slice(0, 4), ["/d", "/v:off", "/s", "/c"]);
+  const absLine = `${path.resolve(root, "x&calc&")}:1`;
+  // The whole path, metacharacters and all, rides as one self-quoted token
+  // inside an outer pair that cmd's /s strips, so `&` never starts a command.
+  assert.equal(argv[4], `""code" "-g" "${absLine}""`);
+});
