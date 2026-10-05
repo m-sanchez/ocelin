@@ -1,8 +1,16 @@
-<p align="center"><img src="docs/assets/ocelin-banner.svg" width="780" alt="Ocelin: your agents, in view. Codex and Claude, locally." /></p>
-
 # Ocelin
 
-Ocelin, formerly Clawdeck, brings **Codex and Claude Code sessions into one local view**. Find active work, inspect recent messages, search saved conversations and reopen the relevant task. Use the browser dashboard for a project, or the optional Windows companion for desktop status.
+Ocelin, formerly Clawdeck, is a local dashboard and optional Windows companion for developers who run Claude Code or Codex on their own computer: it shows which sessions are running or need you, what they last said, and lets you search and reopen saved conversations.
+
+<img src="docs/assets/dashboard.png" width="720" alt="Ocelin browser dashboard in the dark theme, with sample Claude Code and Codex sessions listed under Agents" />
+
+Try the browser dashboard from a project folder with Node 20 or newer (CI covers Linux and Windows). It starts a local server and opens this page in your browser:
+
+```bash
+npx -p https://github.com/m-sanchez/ocelin/releases/download/v0.7.0-preview.3/clawdeck-panel-0.7.0-preview.3.tgz ocelin run
+```
+
+Run the same command with `stop` in place of `run` to shut the server down.
 
 [Try the 0.7.0-preview.3 Windows build](https://github.com/m-sanchez/ocelin/releases/tag/v0.7.0-preview.3) · [Browser quickstart](#quickstart) · [Website](https://miguelsanchez.co.uk/ocelin/) · [Desktop compatibility](docs/WINDOWS-DESKTOP.md)
 
@@ -78,9 +86,7 @@ work on with either assistant and it shows what is actually happening: live
 sessions, an event timeline, cost and context telemetry, git worktrees,
 reviews, and delivery state - in one local web UI.
 
-Choose a project's **Workspace** button in the companion to reach the project dashboard. It starts with sessions and attention; use **Customize view** to enable more information.
-
-![Project overview dashboard, dark theme](docs/assets/dashboard.png)
+Choose a project's **Workspace** button in the companion to reach the project dashboard shown at the top of this page. It starts with sessions and attention; use **Customize view** to enable more information.
 
 ![Project workspace display settings for charts, runs, repository cards, health, activity and advanced navigation](docs/assets/workspace-settings.png)
 
@@ -182,9 +188,10 @@ node scripts/panel-run.mjs --checkout /path/to/your/project
 ```
 
 That alone gives you the git-level views (worktrees, diff, commits, MR draft)
-and session liveness from Claude Code and Codex's local transcript files, with zero setup,
-nothing written to your project, one loopback server that stops when you
-close it.
+and session liveness from Claude Code and Codex's local transcript files, with zero setup
+and one loopback server. It writes runtime state only under `.claude/.runtime/`
+in your project. To shut the server down, run `ocelin stop --checkout /path/to/your/project`
+(from the clone: `node scripts/panel-stop.mjs --checkout /path/to/your/project`).
 
 Codex sessions are discovered automatically under `CODEX_HOME/sessions`
 (`~/.codex/sessions` by default), matched to the observed checkout and its
